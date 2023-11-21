@@ -34,5 +34,4 @@ https://github.com/ghimiresunil/Machine-Learning-Project-Structure
 
 \***\*Note\*\***: The `data` folder and `.env` file won’t appear in github. It will be in your local folder. This is not pushed to githhub as it will be in the ignore list (`.gitignore` file). If you want to checkin that also, just comment out in `.gitignore` file and add the data folder to github.
 
-## Thank-You for reading! Share your ❤️ by starring this repo! as it encourages me to write more!
 # emakia
