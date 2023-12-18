@@ -18,7 +18,7 @@ def extract_tweet_content(jsonl_file, output_csv):
                     tweet_id = data['id']
                     tweet_content = data['tweet content']
                     confidences = data['prediction']['confidences']
-
+                    #comment
                     threshold = 0.75
                     label = '1' if confidences[0] > threshold else '0' if confidences[1] > threshold else 'threshold too high'
 
