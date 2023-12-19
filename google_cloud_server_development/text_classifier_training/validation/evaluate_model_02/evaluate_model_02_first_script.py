@@ -1,3 +1,7 @@
+import sys
+sys.path.append('../../../config.py')
+from config import YOUR_NAME
+
 import csv
 import json
 
@@ -26,5 +30,5 @@ def extract_tweet_content(jsonl_file, output_csv, threshold):
 
 # Replace 'all_predictions.jsonl' with your JSONL file name
 # Replace 'tweet_contents.csv' with the desired output CSV file name
-extract_tweet_content('mie_all_prediction.jsonl', 'tweet_contents.csv', 0.75)
+extract_tweet_content(f'{YOUR_NAME}_all_prediction.jsonl', 'tweet_contents.csv', 0.75)
 
