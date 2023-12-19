@@ -1,3 +1,4 @@
+# These 3 lines are for name variables in the name config file
 import sys
 sys.path.append('../../../config.py')
 from config import YOUR_NAME
