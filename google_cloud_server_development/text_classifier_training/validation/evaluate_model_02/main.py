@@ -1,10 +1,13 @@
+import sys
+sys.path.append('../../../../config.py')
+from config import YOUR_NAME
+
 from evaluate_model_02_first_script import extract_tweet_content
 from evaluate_model_02_second_script import evaluate
 import os
 import shutil
 import pandas as pd
 
-YOUR_NAME = 'mie'
 THRESHOLDS = [0.600, 0.750, 0.775, 0.800, 0.825, 0.850, 0.900]
 input_jsonl_file = f'{YOUR_NAME}_all_prediction.jsonl'
 tweet_content_file = 'tweet_contents.csv'
