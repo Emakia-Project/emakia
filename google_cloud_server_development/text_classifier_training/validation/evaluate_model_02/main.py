@@ -1,6 +1,6 @@
-import sys
-sys.path.append('../../../../config.py')
-from config import YOUR_NAME
+#import sys
+#sys.path.append('../../../../config.py')
+#from config import YOUR_NAME
 
 from evaluate_model_02_first_script import extract_tweet_content
 from evaluate_model_02_second_script import evaluate
@@ -9,7 +9,7 @@ import shutil
 import pandas as pd
 
 THRESHOLDS = [0.600, 0.750, 0.775, 0.800, 0.825, 0.850, 0.900]
-input_jsonl_file = f'{YOUR_NAME}_all_prediction.jsonl'
+input_jsonl_file = f'sikieng_all_prediction.jsonl'
 tweet_content_file = 'tweet_contents.csv'
 
 # Extract folder name from the input_jsonl_file
