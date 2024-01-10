@@ -1,11 +1,6 @@
-const project = 'training1emakia';
-const location = 'us-central1';
-const datasetId = "4557366845480370176";
-//const datasetId = 'YOUR_DATASET_ID';
-const modelDisplayName = 'english_model_node_Lucile';
-const trainingPipelineDisplayName = 'english_pipeline_node_Lucile';
-// const project = 'YOUR_PROJECT_ID';
-// const location = 'YOUR_PROJECT_LOCATION';
+const config = require('./config.js');
+const { project, location, datasetId, modelDisplayName, trainingPipelineDisplayName } = config;
+
 const aiplatform = require('@google-cloud/aiplatform');
 const {definition} =
   aiplatform.protos.google.cloud.aiplatform.v1.schema.trainingjob;

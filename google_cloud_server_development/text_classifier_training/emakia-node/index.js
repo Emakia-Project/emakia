@@ -1,6 +1,5 @@
-const datasetDisplayName = "Lucile-Dataset_Node";
-const project = 'training1emakia';
-const location = 'us-central1';
+const config = require('./config.js');
+const { project, location, datasetDisplayName } = config;
 
 // Imports the Google Cloud Dataset Service Client library
 const {DatasetServiceClient} = require('@google-cloud/aiplatform');

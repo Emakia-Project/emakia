@@ -1,13 +1,10 @@
-//const {Storage} = require('@google-cloud/storage');
-// Instantiate a storage client
-//const storage = new Storage();
-//const myBucket = storage.bucket('prediction-results-emakia');
+const config = require('./config.js');
+const { endpointId, project } = config;
 
 
 var input_file_data = []
 const {BigQuery} = require('@google-cloud/bigquery');
 const bigquery = new BigQuery();
-  // [END bigquery_client_default_credentials]
 async function query() {
     // Queries tweets
 
@@ -36,9 +33,7 @@ async function query() {
 
  }	
   // [END bigquery_query]
- 
-const endpointId = '1076406490429915136';
-const project = 'training1emakia';
+
 const location = 'us-central1';
 const aiplatform = require('@google-cloud/aiplatform');
 const {instance, prediction} =
