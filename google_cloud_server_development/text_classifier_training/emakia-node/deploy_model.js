@@ -1,19 +1,12 @@
 'use strict';
 
+const config = require('./config.js');
+const { project, modelId, endpointId, deployedModelDisplayName } = config;
+
 async function main(
   location = 'us-central1'
 ) {
   // [START aiplatform_deploy_model_sample]
-  /**
-   * TODO(developer): Uncomment these variables before running the sample.\
-   * (Not necessary if passing values as arguments)
-   */
-
-  const modelId = "3622422421568487424";
-  const endpointId = '1076406490429915136';
-  const deployedModelDisplayName = 'english_model_node_lucile_deployed';
-  const project = 'training1emakia';
-  // const location = 'YOUR_PROJECT_LOCATION';
 
   const modelName = `projects/${project}/locations/${location}/models/${modelId}`;
   const endpoint = `projects/${project}/locations/${location}/endpoints/${endpointId}`;

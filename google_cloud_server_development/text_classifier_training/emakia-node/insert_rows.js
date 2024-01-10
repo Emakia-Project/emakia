@@ -1,13 +1,9 @@
 const aiplatform = require('@google-cloud/aiplatform');
 const { BigQuery } = require("@google-cloud/bigquery");
 const { PredictionServiceClient } = require('@google-cloud/aiplatform').v1;
+const config = require('./config.js');
+const { projectId, datasetId, tableId, endpointId, location, locationEndpoint } = config;
 
-const projectId = 'training1emakia';
-const datasetId = 'bq_dataset_Mie';
-const tableId = 'tweet_prediction_results_Mie';
-const endpointId = '5701603307739414528';
-const location = 'US';
-const locationEndpoint = 'us-central1';
 const {instance, prediction} =
  aiplatform.protos.google.cloud.aiplatform.v1.schema.predict;
 

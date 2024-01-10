@@ -1,6 +1,6 @@
-const project = 'training1emakia';
-const location = 'us-central1';
-const datasetId = "5913324167272333312";
+const config = require('./config.js');
+const { project, location, datasetId } = config;
+
 const gcsSourceUri = "gs://data_lucile/tweets-labels.csv";
 // eg. "gs://<your-gcs-bucket>/<import_source_path>/[file.csv/file.jsonl]"
 

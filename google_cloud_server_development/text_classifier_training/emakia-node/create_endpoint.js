@@ -1,12 +1,9 @@
 'use strict';
+const config = require('./config.js');
+const { endpointId, project, endpointDisplayName, location } = config;
 
-async function main(endpointDisplayName = 'lucile_endpoint_node', project = 'training1emakia', location = 'us-central1') {
+async function main() {
   // [START aiplatform_create_endpoint_sample]
-  /**
-   * TODO(developer): Uncomment these variables before running the sample.\
-   * (Not necessary if passing values as arguments)
-   */
-  // const location = 'YOUR_PROJECT_LOCATION';
 
   // Imports the Google Cloud Endpoint Service Client library
   const {EndpointServiceClient} = require('@google-cloud/aiplatform');
