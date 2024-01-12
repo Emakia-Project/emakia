@@ -1,12 +1,10 @@
 const aiplatform = require('@google-cloud/aiplatform');
 const { BigQuery } = require('@google-cloud/bigquery');
 const { PredictionServiceClient } = require('@google-cloud/aiplatform').v1;
-const projectId = 'training1emakia';
-const datasetId = 'dataset_lucile';
-const tableId = 'tweets_prediction_result_lucile4';
-const endpointId = '1076406490429915136';
-const location = 'US';
-const locationEndpoint = 'us-central1';
+
+const config = require('./config.js');
+const { projectId, datasetId, tableId, endpointId, location, locationEndpoint  } = config;
+
 const { instance, prediction } = aiplatform.protos.google.cloud.aiplatform.v1.schema.predict;
 async function insertRowsAsStream(datasetId, tableId, rows) {
   const bigqueryClient = new BigQuery();
