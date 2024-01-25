@@ -21,7 +21,7 @@ async function insertRowsAsStream(datasetId, tableId, rows) {
 }
 async function queryAndPredict() {
     const bigquery = new BigQuery();
-    const query = `SELECT id, text, possibly_sensitive
+    const query = `SELECT id, text, possibly_sensitive, created_at
       FROM \`training1emakia.training1_dataset_testingprediction.training1_table_testingprediction\``;
     const options = {
       query: query,
@@ -90,9 +90,10 @@ async function queryAndPredict() {
           }
           const predictionRow = {
             text: row.text,
-            twitter_prediction: row.possibly_sensitive,
+            twitter_sensitiveprediction: row.possibly_sensitive,
             model_id: response.deployedModelId,
             tweet_id: row.id,
+            created_at: row.created_at,
             prediction_results: prediction_results,
           };
           predictionRows.push(predictionRow);
