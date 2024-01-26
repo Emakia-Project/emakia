@@ -1,14 +1,15 @@
 'use strict';
 
 const config = require('./config.js');
-const { datasetId } = config;
+const { datasetId, tableId } = config;
 
 function main(
   schema = [
     {name: 'text', type: 'STRING', mode: 'REQUIRED'},  // missing mode every item
-    {name: 'twitter_prediction', type: 'BOOL', mode: 'REQUIRED'},
+    {name: 'twitter_sensitiveprediction', type: 'BOOL', mode: 'REQUIRED'},
     {name: 'model_id', type: 'INTEGER', mode: 'REQUIRED'},
     {name: 'tweet_id', type: 'INTEGER', mode: 'REQUIRED'},
+    {name: 'created_at', type: 'DATETIME', mode: 'REQUIRED'},
     {name: 'prediction_results',
       type: "RECORD",
       mode: "REPEATED",
