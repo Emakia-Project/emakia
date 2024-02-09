@@ -1,33 +1,9 @@
 const fs = require('fs');
 const csv = require('csv-parser');
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const language = require('@google-cloud/language');
 
-async function quickstart() {
-    // Read CSV file
-    const csvData = await fs.promises.readFile('tweets-labels-processed.csv', 'utf8');
-
-    const records = [];
-    await new Promise((resolve, reject) => {
-        // Use csv-parser to parse CSV data
-        const parser = csv()
-            .on('data', (data) => records.push(data))
-            .on('end', resolve)
-            .on('error', reject);
-
-        // Create a regular fs stream and pipe the CSV data to the parser
-        fs.createReadStream('tweets-labels-processed.csv').pipe(parser);
-    });
-
-    // Check if there are records in the CSV
-    if (records.length === 0) {
-        console.error('No records found in the CSV file.');
-        return;
-    }
-
-    // Get text from the first row
-    const text = records[0]['text'];
-
-    // Instantiates a client
+async function analyzeSentiment(text) {
     const client = new language.LanguageServiceClient();
 
     const document = {
@@ -35,128 +11,66 @@ async function quickstart() {
         type: 'PLAIN_TEXT',
     };
 
-    // Detects the sentiment of the text
     const [result] = await client.analyzeSentiment({ document: document });
     const sentiment = result.documentSentiment;
 
     console.log(`Text: ${text}`);
     console.log(`Sentiment score: ${sentiment.score}`);
     console.log(`Sentiment magnitude: ${sentiment.magnitude}`);
+
+    return {
+        'Sentiment score': sentiment.score,
+        'Sentiment magnitude': sentiment.magnitude,
+    };
+}
+
+async function processCSV(inputFilePath, outputFilePath) {
+    try {
+        const records = [];
+        const fileStream = fs.createReadStream(inputFilePath);
+
+        const parser = csv()
+            .on('data', (data) => records.push(data))
+            .on('end', async () => {
+                if (records.length === 0) {
+                    console.error('No records found in the CSV file.');
+                    return;
+                }
+
+                const text = records[0]['text'];
+                const sentimentResults = await analyzeSentiment(text);
+
+                const recordsWithSentiment = records.map((record) => ({
+                    'text': record['text'],
+                    ...sentimentResults,
+                }));
+
+                const csvWriter = createCsvWriter({
+                    path: outputFilePath,
+                    header: [
+                        { id: 'text', title: 'Text' },
+                        { id: 'Sentiment score', title: 'Sentiment score' },
+                        { id: 'Sentiment magnitude', title: 'Sentiment magnitude' },
+                    ],
+                });
+
+                await csvWriter.writeRecords(recordsWithSentiment);
+                console.log(`Sentiment scores added to the new CSV file (${outputFilePath}).`);
+            })
+            .on('error', (error) => {
+                console.error('Error reading CSV:', error);
+            });
+
+        fileStream.pipe(parser);
+    } catch (error) {
+        console.error('Error processing CSV:', error);
+    }
+}
+
+async function quickstart() {
+    const inputFilePath = 'tweets-labels-processed.csv';
+    const outputFilePath = 'sentiment-analysis.csv';
+    await processCSV(inputFilePath, outputFilePath);
 }
 
 quickstart();
-
-
-
-
-// async function quickstart() {
-//     // Imports the Google Cloud client library
-//     const language = require('@google-cloud/language');
-  
-//     // Instantiates a client
-//     const client = new language.LanguageServiceClient();
-  
-//     // The text to analyze
-//     const text = 'Hello, world!';
-  
-//     const document = {
-//       content: text,
-//       type: 'PLAIN_TEXT',
-//     };
-  
-//     // Detects the sentiment of the text
-//     const [result] = await client.analyzeSentiment({document: document});
-//     const sentiment = result.documentSentiment;
-  
-//     console.log(`Text: ${text}`);
-//     console.log(`Sentiment score: ${sentiment.score}`);
-//     console.log(`Sentiment magnitude: ${sentiment.magnitude}`);
-//   }
-
-//   quickstart()
-
-
-/*
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-// 'use strict';
-
-// async function main() {
-//   // [START aiplatform_predict_text_sentiment_analysis_sample]
-//   /**
-//    * TODO(developer): Uncomment these variables before running the sample.\
-//    * (Not necessary if passing values as arguments)
-//    */
-
-//   const text = "text";
-//   const endpointId = "YOUR_ENDPOINT_ID";
-//   const project = 'YOUR_PROJECT_ID';
-//   const location = 'us-central1';
-//   const aiplatform = require('@google-cloud/aiplatform');
-//   const {instance, prediction} =
-//     aiplatform.protos.google.cloud.aiplatform.v1.schema.predict;
-
-//   // Imports the Google Cloud Model Service Client library
-//   const {PredictionServiceClient} = aiplatform.v1;
-
-//   // Specifies the location of the api endpoint
-//   const clientOptions = {
-//     apiEndpoint: 'us-central1-aiplatform.googleapis.com',
-//   };
-
-//   // Instantiates a client
-//   const predictionServiceClient = new PredictionServiceClient(clientOptions);
-
-//   async function predictTextSentimentAnalysis() {
-//     // Configure the endpoint resource
-//     const endpoint = `projects/${project}/locations/${location}/endpoints/${endpointId}`;
-
-//     const instanceObj = new instance.TextSentimentPredictionInstance({
-//       content: text,
-//     });
-//     const instanceVal = instanceObj.toValue();
-
-//     const instances = [instanceVal];
-//     const request = {
-//       endpoint,
-//       instances,
-//     };
-
-//     // Predict request
-//     const [response] = await predictionServiceClient.predict(request);
-
-//     console.log('Predict text sentiment analysis response:');
-//     console.log(`\tDeployed model id : ${response.deployedModelId}`);
-
-//     console.log('\nPredictions :');
-//     for (const predictionResultValue of response.predictions) {
-//       const predictionResult =
-//         prediction.TextSentimentPredictionResult.fromValue(
-//           predictionResultValue
-//         );
-//       console.log(`\tSentiment measure: ${predictionResult.sentiment}`);
-//     }
-//   }
-//   predictTextSentimentAnalysis();
-//   // [END aiplatform_predict_text_sentiment_analysis_sample]
-// }
-
-// process.on('unhandledRejection', err => {
-//   console.error(err.message);
-//   process.exitCode = 1;
-// });
-
-// main(...process.argv.slice(2));
