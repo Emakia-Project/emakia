@@ -1,5 +1,5 @@
 const fs = require('fs');
-const csv = require('csv-parser');
+const readline = require('readline');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const language = require('@google-cloud/language');
 
@@ -14,54 +14,62 @@ async function analyzeSentiment(text) {
     const [result] = await client.analyzeSentiment({ document: document });
     const sentiment = result.documentSentiment;
 
-    console.log(`Text: ${text}`);
-    console.log(`Sentiment score: ${sentiment.score}`);
-    console.log(`Sentiment magnitude: ${sentiment.magnitude}`);
-
     return {
         'Sentiment score': sentiment.score,
         'Sentiment magnitude': sentiment.magnitude,
     };
 }
 
-async function processCSV(inputFilePath, outputFilePath) {
+async function processCSV(inputFilePath, outputFilePath, numRows) {
     try {
-        const records = [];
         const fileStream = fs.createReadStream(inputFilePath);
+        const rl = readline.createInterface({
+            input: fileStream,
+            crlfDelay: Infinity,
+        });
 
-        const parser = csv()
-            .on('data', (data) => records.push(data))
-            .on('end', async () => {
-                if (records.length === 0) {
-                    console.error('No records found in the CSV file.');
-                    return;
-                }
+        const header = (await rl[Symbol.asyncIterator]().next()).value.split(',');
 
-                const text = records[0]['text'];
-                const sentimentResults = await analyzeSentiment(text);
+        const csvWriter = createCsvWriter({
+            path: outputFilePath,
+            header: [
+                { id: 'text', title: 'Text' },
+                { id: 'Sentiment score', title: 'Sentiment score' },
+                { id: 'Sentiment magnitude', title: 'Sentiment magnitude' },
+            ],
+        });
 
-                const recordsWithSentiment = records.map((record) => ({
-                    'text': record['text'],
-                    ...sentimentResults,
-                }));
+        const recordsWithSentiment = [];
+        let rowCount = 0;
 
-                const csvWriter = createCsvWriter({
-                    path: outputFilePath,
-                    header: [
-                        { id: 'text', title: 'Text' },
-                        { id: 'Sentiment score', title: 'Sentiment score' },
-                        { id: 'Sentiment magnitude', title: 'Sentiment magnitude' },
-                    ],
-                });
+        for await (const line of rl) {
+            if (rowCount >= numRows) {
+                break; // Stop processing after the specified number of rows
+            }
 
-                await csvWriter.writeRecords(recordsWithSentiment);
-                console.log(`Sentiment scores added to the new CSV file (${outputFilePath}).`);
-            })
-            .on('error', (error) => {
-                console.error('Error reading CSV:', error);
+            const recordValues = line.split(',');
+            const record = {};
+
+            for (let i = 0; i < header.length; i++) {
+                record[header[i]] = recordValues[i];
+            }
+
+            const text = record['text'];
+            const sentimentResults = await analyzeSentiment(text);
+
+            recordsWithSentiment.push({
+                ...record,
+                ...sentimentResults,
             });
 
-        fileStream.pipe(parser);
+            rowCount++;
+        }
+
+        await csvWriter.writeRecords(recordsWithSentiment);
+        console.log(`Sentiment scores added to the new CSV file (${outputFilePath}).`);
+
+        // Close file stream explicitly
+        fileStream.close();
     } catch (error) {
         console.error('Error processing CSV:', error);
     }
@@ -70,7 +78,10 @@ async function processCSV(inputFilePath, outputFilePath) {
 async function quickstart() {
     const inputFilePath = 'tweets-labels-processed.csv';
     const outputFilePath = 'sentiment-analysis.csv';
-    await processCSV(inputFilePath, outputFilePath);
+    const numRowsToProcess = 10; // Specify the number of rows to process
+    await processCSV(inputFilePath, outputFilePath, numRowsToProcess);
 }
 
 quickstart();
+
+
