@@ -20,7 +20,7 @@ async function analyzeSentiment(text) {
     };
 }
 
-async function processCSV(inputFilePath, outputFilePath, numRows) {
+async function processCSV(inputFilePath, outputFilePath, chunkSize) {
     try {
         const fileStream = fs.createReadStream(inputFilePath);
         const rl = readline.createInterface({
@@ -39,14 +39,10 @@ async function processCSV(inputFilePath, outputFilePath, numRows) {
             ],
         });
 
-        const recordsWithSentiment = [];
+        let recordsWithSentiment = [];
         let rowCount = 0;
 
         for await (const line of rl) {
-            if (rowCount >= numRows) {
-                break; // Stop processing after the specified number of rows
-            }
-
             const recordValues = line.split(',');
             const record = {};
 
@@ -63,9 +59,21 @@ async function processCSV(inputFilePath, outputFilePath, numRows) {
             });
 
             rowCount++;
+
+            if (rowCount >= chunkSize) {
+                await csvWriter.writeRecords(recordsWithSentiment);
+                console.log(`Sentiment scores added to the new CSV file for ${rowCount} rows.`);
+                recordsWithSentiment = [];
+                rowCount = 0;
+            }
         }
 
-        await csvWriter.writeRecords(recordsWithSentiment);
+        // Write remaining records
+        if (recordsWithSentiment.length > 0) {
+            await csvWriter.writeRecords(recordsWithSentiment);
+            console.log(`Sentiment scores added to the new CSV file for the remaining rows.`);
+        }
+
         console.log(`Sentiment scores added to the new CSV file (${outputFilePath}).`);
 
         // Close file stream explicitly
@@ -78,10 +86,9 @@ async function processCSV(inputFilePath, outputFilePath, numRows) {
 async function quickstart() {
     const inputFilePath = 'tweets-labels-processed.csv';
     const outputFilePath = 'sentiment-analysis.csv';
-    const numRowsToProcess = 10; // Specify the number of rows to process
-    await processCSV(inputFilePath, outputFilePath, numRowsToProcess);
+    const chunkSize = 10;
+    await processCSV(inputFilePath, outputFilePath, chunkSize);
 }
 
 quickstart();
-
 
