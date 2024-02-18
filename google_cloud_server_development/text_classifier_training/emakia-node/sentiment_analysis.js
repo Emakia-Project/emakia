@@ -1,10 +1,10 @@
 const fs = require('fs');
 const readline = require('readline');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const language = require('@google-cloud/language');
+const { LanguageServiceClient } = require('@google-cloud/language');
 
 async function analyzeSentiment(text) {
-    const client = new language.LanguageServiceClient();
+    const client = new LanguageServiceClient();
 
     const document = {
         content: text,
@@ -20,7 +20,7 @@ async function analyzeSentiment(text) {
     };
 }
 
-async function processCSV(inputFilePath, outputFilePath, chunkSize) {
+async function processCSV(inputFilePath, outputFilePath, labelsFilePath, chunkSize) {
     try {
         const fileStream = fs.createReadStream(inputFilePath);
         const rl = readline.createInterface({
@@ -30,10 +30,19 @@ async function processCSV(inputFilePath, outputFilePath, chunkSize) {
 
         const header = (await rl[Symbol.asyncIterator]().next()).value.split(',');
 
+        const labelsFileStream = fs.createReadStream(labelsFilePath);
+        const labelsRl = readline.createInterface({
+            input: labelsFileStream,
+            crlfDelay: Infinity,
+        });
+
+        const labelHeader = (await labelsRl[Symbol.asyncIterator]().next()).value.split(',');
+
         const csvWriter = createCsvWriter({
             path: outputFilePath,
             header: [
                 { id: 'text', title: 'Text' },
+                { id: 'label', title: 'Label' },
                 { id: 'Sentiment score', title: 'Sentiment score' },
                 { id: 'Sentiment magnitude', title: 'Sentiment magnitude' },
             ],
@@ -50,10 +59,13 @@ async function processCSV(inputFilePath, outputFilePath, chunkSize) {
                 record[header[i]] = recordValues[i];
             }
 
+            const labelText = (await labelsRl[Symbol.asyncIterator]().next()).value.split(',')[0];
             const text = record['text'];
             const sentimentResults = await analyzeSentiment(text);
 
             recordsWithSentiment.push({
+                text,
+                label: labelText,
                 ...record,
                 ...sentimentResults,
             });
@@ -76,8 +88,9 @@ async function processCSV(inputFilePath, outputFilePath, chunkSize) {
 
         console.log(`Sentiment scores added to the new CSV file (${outputFilePath}).`);
 
-        // Close file stream explicitly
+        // Close file streams explicitly
         fileStream.close();
+        labelsFileStream.close();
     } catch (error) {
         console.error('Error processing CSV:', error);
     }
@@ -86,9 +99,9 @@ async function processCSV(inputFilePath, outputFilePath, chunkSize) {
 async function quickstart() {
     const inputFilePath = 'tweets-labels-processed.csv';
     const outputFilePath = 'sentiment-analysis.csv';
+    const labelsFilePath = 'tweets-labels.csv';
     const chunkSize = 10;
-    await processCSV(inputFilePath, outputFilePath, chunkSize);
+    await processCSV(inputFilePath, outputFilePath, labelsFilePath, chunkSize);
 }
 
 quickstart();
-
