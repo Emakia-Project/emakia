@@ -2,6 +2,8 @@
 
 # Machine Learning Project Structure
 
+Set up the config.py with your name
+
 ## Project Directory Structure
 
 ```
