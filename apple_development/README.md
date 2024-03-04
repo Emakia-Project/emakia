@@ -2,6 +2,15 @@
 
 # Machine Learning Project Structure
 
+## How to use
+
+git clone https://github.com/Emakia-Project/emakia.git
+
+use the config.js files to set up your environment
+
+cd to emakia-node directory
+npm i
+
 ## Project Directory Structure
 
 ```
@@ -9,9 +18,9 @@
 |   |── Apple development
 |   |── Google Cloud Server Development
 |   |   ├── Text Classifier Training
-|   |   |   ├── Notebook <- All the ipython notebooks used for EDA, visualization and verification of concept (POC).
-|   |   |   ├── Node.js
-|   |   |   ├── Validation
+|   |   |   ├── notebook <- All the ipython notebooks used for EDA, visualization and verification of concept (POC).
+|   |   |   ├── emiakia-node
+|   |   |   ├── validation
 |   |   |   |   ├── evaluate_model_01.py <- Different Matries used to validate the model
 |   |   |   |   ├──  evaluate_model_02.py <- Different Matries used to validate the model
 │   ├── data <- data in different format
