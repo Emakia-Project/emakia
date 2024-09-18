@@ -47,7 +47,7 @@ async def main():
     MAX_TWEETS = 10
     tweets = None
 
-    while tweet_count < MINIMUM_TWEETS:
+    while tweet_count < MAX_TWEETS:
         try:
             print(f' in the while loop try')
             tweets = await get_tweets(tweets)
