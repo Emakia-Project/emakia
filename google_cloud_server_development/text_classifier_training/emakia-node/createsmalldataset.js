@@ -19,7 +19,7 @@ async function divideFileIntoChunks(inputFilePath, chunkSize) {
         header = (await rl[Symbol.asyncIterator]().next()).value.split(',');
         
         for await (const line of rl) {
-            currentChunk.push(line);
+            currentChunk.push(line);https://github.com/Emakia-Project/emakia/blob/main/createsmalldataset.js
             lineNumber++;
 
             if (lineNumber % chunkSize === 0) {
