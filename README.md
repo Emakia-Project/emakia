@@ -1,4 +1,37 @@
+
+
 # Emakia, Machine Learning Project
+
+Emakia is a non-profit organization dedicated to developing a system to filter out toxicity from social media data. Our mission is to create a safer and more positive online environment and providing universities with a system to validate labels and output models.
+
+# Technologies Used
+
+## Vertex AI: 
+Leveraging Google Cloud’s Vertex AI for text classifier model training.
+
+## Core ML: 
+Utilizing Core ML text classifier for iPhone to  for text classifier model training and performance on iOS devices.
+
+## Big Query:
+stored social media data ( Twitter data)
+data with text classifier model prediction
+
+## Large Language Models (LLM) 
+
+## Retrieval-Augmented Generation (RAG)
+
+# Project Focus
+We are focused on validating labeled data to train our models and the output of our models using Large Language Models (LLM) and Retrieval-Augmented Generation (RAG).
+Create a MLOP with training, prediction, evaluation of the prediction, and retraining the model with unknown data to the model.
+
+# Collaboration
+Our project is a collaborative effort with:
+Montclair NLP Lab, Montclair State University
+PAU University
+We share our progress, code, and data with these institutions to foster innovation and collective growth.
+
+# Emakia Tech
+Emakia Tech is our for-profit branch.
 
 # Machine Learning Project Structure
 
