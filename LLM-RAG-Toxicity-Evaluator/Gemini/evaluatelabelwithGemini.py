@@ -2,6 +2,7 @@ import os
 import csv
 import time
 import textwrap
+import sys
 from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
 from langchain.prompts import (
@@ -45,14 +46,8 @@ prompt_template = PromptTemplate(input_variables=["content"], template=template)
 # Create the RunnableSequence for sentiment analysis
 content_chain = prompt_template | llm
 
-# Path to your input csv file
-input_text_file_path = 'array_three.csv'
-
-# Path to your output CSV file
-output_csv_file_path = 'outputsmallarraygemini.csv'
-
 # Function to process a batch of lines
-def process_batch(lines, csvwriter):
+def process_batch(lines, csvwriter, outfile):
     for line in lines:
         content = line.strip()  # Remove leading/trailing whitespace
         try:
@@ -64,24 +59,34 @@ def process_batch(lines, csvwriter):
         # Flush the writer to ensure all data is written
         outfile.flush()
 
-# Read the input text file and process the first 20 lines
-batch_size = 1000  # Adjust the batch size as needed
-line_count = 0
-with open(input_text_file_path, mode='r', encoding='utf-8') as infile, \
-     open(output_csv_file_path, mode='w', newline='', encoding='utf-8') as outfile:
-    csvwriter = csv.writer(outfile)
-    # Write the header to the output file
-    csvwriter.writerow(['Review', 'Original Content'])
-    batch = []
-    for line in infile:
-        if line_count >= 20:
-            break
-        batch.append(line)
-        line_count += 1
-        if len(batch) >= batch_size:
-            process_batch(batch, csvwriter)
-            batch = []
-            time.sleep(70)  # Add delay to respect rate limits
-    # Process any remaining lines
-    if batch:
-        process_batch(batch, csvwriter)
+# Main function to handle the input and output file arguments
+def main(inputfile, outputfile):
+    # Read the input text file and process the first 10 lines
+    batch_size = 10  # Process the first 10 lines only
+    line_count = 0
+    with open(inputfile, mode='r', encoding='utf-8') as infile, \
+         open(outputfile, mode='w', newline='', encoding='utf-8') as outfile:
+        csvwriter = csv.writer(outfile)
+        # Write the header to the output file
+        csvwriter.writerow(['Review', 'Original Content'])
+        batch = []
+        for line in infile:
+            if line_count >= batch_size:
+                break
+            batch.append(line)
+            line_count += 1
+            if len(batch) >= batch_size:
+                process_batch(batch, csvwriter, outfile)
+                batch = []
+                time.sleep(70)  # Add delay to respect rate limits
+        # Process any remaining lines
+        if batch:
+            process_batch(batch, csvwriter, outfile)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python3 script.py <inputfile> <outputfile>")
+    else:
+        inputfile = sys.argv[1]
+        outputfile = sys.argv[2]
+        main(inputfile, outputfile)
