@@ -49,11 +49,19 @@ content_chain = prompt_template | llm
 # Function to process a batch of lines
 def process_batch(lines, csvwriter, outfile):
     for line in lines:
-        content = line.strip()  # Remove leading/trailing whitespace
+        row = line.strip().split(',')  # Split the line into columns
+        if len(row) < 3:
+            print("Skipping line due to insufficient columns:", line)
+            continue
+        content = row[2]  # Evaluate only the third column
         try:
             review = content_chain.invoke({"content": content})
-            csvwriter.writerow([review.content, content])
-            print(review.content, content)
+            review_text = review.content.replace("'", "").replace("[", "").replace("]", "").replace("\"", "")
+            if review_text == "":
+                review_text = "No prediction"
+            row_text = ', '.join([element.replace("'", "").replace("[", "").replace("]", "").replace("\"", "") for element in row])
+            csvwriter.writerow([review_text, row_text])
+            print(review_text, row_text)
         except Exception as e:
             print(f"Error processing line: {line}, Error: {e}")
         # Flush the writer to ensure all data is written
@@ -61,9 +69,8 @@ def process_batch(lines, csvwriter, outfile):
 
 # Main function to handle the input and output file arguments
 def main(inputfile, outputfile):
-    # Read the input text file and process the first 10 lines
-    batch_size = 10  # Process the first 10 lines only
-    line_count = 0
+    # Read the input text file and process the lines in batches of 100
+    batch_size = 100
     with open(inputfile, mode='r', encoding='utf-8') as infile, \
          open(outputfile, mode='w', newline='', encoding='utf-8') as outfile:
         csvwriter = csv.writer(outfile)
@@ -71,10 +78,7 @@ def main(inputfile, outputfile):
         csvwriter.writerow(['Review', 'Original Content'])
         batch = []
         for line in infile:
-            if line_count >= batch_size:
-                break
             batch.append(line)
-            line_count += 1
             if len(batch) >= batch_size:
                 process_batch(batch, csvwriter, outfile)
                 batch = []
@@ -84,9 +88,8 @@ def main(inputfile, outputfile):
             process_batch(batch, csvwriter, outfile)
 
 if __name__ == "__main__":
+    import sys
     if len(sys.argv) != 3:
-        print("Usage: python3 script.py <inputfile> <outputfile>")
+        print("Usage: python script.py <inputfile> <outputfile>")
     else:
-        inputfile = sys.argv[1]
-        outputfile = sys.argv[2]
-        main(inputfile, outputfile)
+        main(sys.argv[1], sys.argv[2])
