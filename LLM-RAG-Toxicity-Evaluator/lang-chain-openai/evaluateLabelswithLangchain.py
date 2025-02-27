@@ -31,18 +31,31 @@ prompt_template = PromptTemplate(input_variables=["content"], template=template)
 # Create the RunnableSequence for sentiment analysis
 content_chain = prompt_template | llm
 
+# Retry logic
+def invoke_with_retries(content_chain, content, retries=3, delay=5):
+    for attempt in range(retries):
+        try:
+            return content_chain.invoke({"content": content}).strip('"')
+    
+            #return response.choices[0].message.content
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed with error: {e}")
+            if attempt < retries - 1:
+                time.sleep(delay)
+    raise Exception("All retry attempts failed")
+
 # Path to your input CSV file
-input_csv_file_path = 'tweets-labels.csv'
+input_csv_file_path = 'tweets-labels-emojis.csv'
 
 # Path to your output CSV file
-output_csv_file_path = 'output.csv'
+output_csv_file_path = 'outputretryopenAI.csv'
 
 # Function to process a batch of rows
 def process_batch(rows, csvwriter):
     for row in rows:
         content = row[0]  # Assuming the content is in the first column
         try:
-            review = content_chain.invoke({"content": content}).strip('"')
+            review = invoke_with_retries(content_chain,  content).strip('"')
             csvwriter.writerow([review, row[1], row[0]])
             print(review, row[1], row[0])
         except Exception as e:
