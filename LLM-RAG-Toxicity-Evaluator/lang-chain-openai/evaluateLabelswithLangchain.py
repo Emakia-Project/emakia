@@ -35,7 +35,7 @@ input_csv_file_path = 'tweets-labels-emojis.csv'
 
 # Path to your output CSV file
 #output_csv_file_path = 'outputfeb15.csv'
-output_csv_file_path = 'output-openai.csv'
+output_csv_file_path = 'output-openai4.csv'
 
 # Function to process a batch of rows
 def process_batch(rows, csvwriter):
