@@ -38,12 +38,13 @@ class FireworksWrapper(Runnable):
         else:
             content = str(input_data)
 
-        return invoke_with_retries(self.client, "/sentientfoundation/models/dobby-mini-unhinged-llama-3-1-8b#accounts/sentientfoundation/deployments/81e155fc", content)
+        return invoke_with_retries(self.client, "accounts/fireworks/models/llama-v3p1-8b-instruct", content)
 
 llm = FireworksWrapper(api_key=fireworks_api_key)
 
 # Define the prompt template for sentiment analysis
-template = """You are a sentiment analyst. Analyze the following statement and explain your choice of overall sentiment. 
+template = """You are a sentiment analyst. Analyze the following statement and respond with either "positive" or "negative".
+
 Statement: {content} 
 YOUR RESPONSE:"""
 prompt_template = PromptTemplate(input_variables=["content"], template=template)
@@ -52,24 +53,47 @@ prompt_template = PromptTemplate(input_variables=["content"], template=template)
 content_chain = prompt_template | llm
 
 # Path to your input CSV file
-input_csv_file_path = 'tweets-labels.csv'
+input_csv_file_path = 'tweets-labels-emojis.csv'
 
 # Path to your output CSV file
-output_csv_file_path = 'output.csv'
+output_csv_file_path = 'llama-v3p1-8b-instruct-outputtweets-labels.csv'
 
-# Function to process a batch of rows
-def process_batch(rows, csvwriter):
-    for row in rows:
+# Function to process rows starting from a specific position
+#def process_rows_from_position(start_position, csvreader, csvwriter):
+def process_rows_from_position( csvreader, start_position csvwriter):
+    current_row = 0  # Track row index
+    for row in csvreader:
+        current_row += 1
+        # Skip rows until the start position
+        if current_row < start_position:
+            continue
+
+        # Process rows from the start position onwards
         content = row[0]  # Assuming the content is in the first column
         try:
             review = content_chain.invoke({"content": content}).strip('"')
-            csvwriter.writerow([review, row[1], row[0]])
-            print(review, row[1], row[0])
-        except Exception as e:
-            print(f"Error processing row: {row}, Error: {e}")
 
-# Read the input CSV file and process each row in batches
-batch_size = 1000  # Adjust the batch size as needed
+            # Check if the length of the review is greater than 10
+            if len(review) > 5:
+                # Search for terms such as "positive", "negative", or "neutral"
+                if "positive" in review.lower():
+                    review = "positive"
+                elif any(term in review.lower() for term in ["harmful", "sensitive","derogatory", "dangerous", "violence", "hatred"]):
+                    review = "negative"
+                elif "neutral" in review.lower():
+                    review = "neutral"
+                elif "negative" in review.lower():
+                    review = "negative"
+                else:
+                    review = review
+
+            csvwriter.writerow([review, row[1], row[0]])
+            print(f" {review}, {row[1]}, {row[0]}")
+        except Exception as e:
+            print(f"Error processing row  {row}, Error: {e}")
+
+# Read the input CSV file and process rows starting from row 52,607
+start_position = 0
 with open(input_csv_file_path, mode='r', newline='', encoding='utf-8') as infile, \
      open(output_csv_file_path, mode='w', newline='', encoding='utf-8') as outfile:
     
@@ -79,14 +103,6 @@ with open(input_csv_file_path, mode='r', newline='', encoding='utf-8') as infile
     # Write the header to the output file
     csvwriter.writerow(['Review', 'Original Content', 'Label'])
     
-    batch = []
-    for row in csvreader:
-        batch.append(row)
-        if len(batch) >= batch_size:
-            process_batch(batch, csvwriter)
-            batch = []
-            time.sleep(70)  # Add delay to respect rate limits
-    
-    # Process any remaining rows
-    if batch:
-        process_batch(batch, csvwriter)
+    # Process rows starting from the specified position
+    process_rows_from_position(start_position, csvreader, csvwriter)
+    #process_rows_from_position( csvreader, csvwriter)
