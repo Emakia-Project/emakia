@@ -22,7 +22,6 @@ def invoke_with_retries(client, model, content, retries=3, delay=5):
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed with error: {e}")
             if attempt < retries - 1:
                 time.sleep(delay)
     raise Exception("All retry attempts failed")
@@ -53,14 +52,13 @@ prompt_template = PromptTemplate(input_variables=["content"], template=template)
 content_chain = prompt_template | llm
 
 # Path to your input CSV file
-input_csv_file_path = 'tweets-labels-emojis.csv'
+input_csv_file_path = 'array_three.csv'
 
 # Path to your output CSV file
-output_csv_file_path = 'llama-v3p1-8b-instruct-outputtweets-labels.csv'
+output_csv_file_path = 'llama-array_three.csv'
 
 # Function to process rows starting from a specific position
-#def process_rows_from_position(start_position, csvreader, csvwriter):
-def process_rows_from_position( csvreader, start_position csvwriter):
+def process_rows_from_position(csvreader, start_position, csvwriter):
     current_row = 0  # Track row index
     for row in csvreader:
         current_row += 1
@@ -69,28 +67,51 @@ def process_rows_from_position( csvreader, start_position csvwriter):
             continue
 
         # Process rows from the start position onwards
-        content = row[0]  # Assuming the content is in the first column
         try:
+            # Ensure the row has sufficient columns
+            if len(row) < 3:
+                continue
+
+            content = row[2].strip()  # Assuming the text content is in the third column
+
+            # Get sentiment review
             review = content_chain.invoke({"content": content}).strip('"')
 
-            # Check if the length of the review is greater than 10
-            if len(review) > 5:
-                # Search for terms such as "positive", "negative", or "neutral"
-                if "positive" in review.lower():
-                    review = "positive"
-                elif any(term in review.lower() for term in ["harmful", "sensitive","derogatory", "dangerous", "violence", "hatred"]):
-                    review = "negative"
-                elif "neutral" in review.lower():
-                    review = "neutral"
-                elif "negative" in review.lower():
-                    review = "negative"
-                else:
-                    review = review
 
-            csvwriter.writerow([review, row[1], row[0]])
-            print(f" {review}, {row[1]}, {row[0]}")
-        except Exception as e:
-            print(f"Error processing row  {row}, Error: {e}")
+
+# Convert the review to lowercase to handle case insensitivity
+            review_lower = review.lower()
+
+            if "positive" in review_lower or "happy" in review_lower:
+                review = "positive"
+            elif "negative" in review_lower:
+                review = "negative"
+            elif "neutral" in review_lower:
+                review = "neutral"
+            elif any(term in review_lower for term in [
+    "harmful", "sexual comment", "profanity", "reach out for help", 
+    "information of a minor", "dangerous", "violence", "hatred", "discriminatory",
+    "illegal", "theft", "harassment", "abuse", "stalking", "substance abuse", 
+    "bullying", "contains a minor", "danger", "threat", "crime", "discriminator",
+    "romantic relationship with a minor", "sexualisation of minors", "hate",
+    "stereotype a group of people based on their race", "graphic", 
+    "explicit", "derogatory", "sexual attraction to a minor", "sexualizes",
+    "sexual references to a minor", "cunnilingus damn", "specific punishment",
+    "derogatory or sexist", "hate speech", "defamatory", "derogatory", "spam",
+    "to condone or promote harm towards an individual", "biased perspective",
+    "potentially suggestive statement", "sexist language", "sexist", "hateful",
+    "discriminates against women", "discriminate", "sexism", "hitting a child"
+    "hoax", "a conspiracy theory","sexual intercourse"
+]):
+                review = "negative"
+            else:
+                review += "not defined"
+
+           
+            # Write processed row to the output file
+            csvwriter.writerow([review, row[0], row[1], row[2]])
+        except Exception:
+            pass
 
 # Read the input CSV file and process rows starting from row 52,607
 start_position = 0
@@ -101,8 +122,7 @@ with open(input_csv_file_path, mode='r', newline='', encoding='utf-8') as infile
     csvwriter = csv.writer(outfile)
     
     # Write the header to the output file
-    csvwriter.writerow(['Review', 'Original Content', 'Label'])
+    csvwriter.writerow(['Review', 'Sentiment', 'Original Content', 'Text'])
     
     # Process rows starting from the specified position
-    process_rows_from_position(start_position, csvreader, csvwriter)
-    #process_rows_from_position( csvreader, csvwriter)
+    process_rows_from_position(csvreader, start_position, csvwriter)
