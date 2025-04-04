@@ -82,30 +82,30 @@ def process_rows_from_position(csvreader, start_position, csvwriter):
 # Convert the review to lowercase to handle case insensitivity
             review_lower = review.lower()
 
-            if "positive" in review_lower or "happy" in review_lower:
+            if "positive" in review_lower or "happy" or "neutral" in review_lower:
                 review = "positive"
             elif "negative" in review_lower:
                 review = "negative"
-            elif "neutral" in review_lower:
-                review = "neutral"
             elif any(term in review_lower for term in [
-    "harmful", "sexual comment", "profanity", "reach out for help", 
-    "information of a minor", "dangerous", "violence", "hatred", "discriminatory",
-    "illegal", "theft", "harassment", "abuse", "stalking", "substance abuse", 
-    "bullying", "contains a minor", "danger", "threat", "crime", "discriminator",
-    "romantic relationship with a minor", "sexualisation of minors", "hate",
-    "stereotype a group of people based on their race", "graphic", 
-    "explicit", "derogatory", "sexual attraction to a minor", "sexualizes",
-    "sexual references to a minor", "cunnilingus damn", "specific punishment",
-    "derogatory or sexist", "hate speech", "defamatory", "derogatory", "spam",
-    "to condone or promote harm towards an individual", "biased perspective",
-    "potentially suggestive statement", "sexist language", "sexist", "hateful",
-    "discriminates against women", "discriminate", "sexism", "hitting a child"
-    "hoax", "a conspiracy theory","sexual intercourse"
+    "harmful", "sexual comment", "slur","sexual", "hurtful", "attack", "profanity", "inflammatory","reach out for help", 
+    "information of a minor", "dangerous", "violence", "hatred", "discriminatory", "obscene", "gambling",
+    "illegal", "theft", "harassment", "abuse", "stalking", "punishment", "power dynamic","substance abuse", 
+    "bullying", "contains a minor", "danger", "offensive", "threat", "crime", "discriminator", "niggah",
+    "romantic relationship with a minor", "sexualisation of minors", "hate", "sexual", "intimidate", "harass",
+    "stereotype a group of people based on their race", "graphic", "opinion on a political or social issue",
+    "explicit", "derogatory", "sexual attraction to a minor", "sexualizes", "sexual", "mock or belittle",
+    "sexual references to a minor", "misogyny","cunnilingus damn", "specific punishment", "bitch", "objectifies",
+    "derogatory or sexist", "hate speech", "suggestive of minors", "defamatory", "derogatory", "spam",
+    "to condone or promote harm towards an individual", "biased perspective", "violent", "stalk", "self harm",
+    "potentially suggestive statement", "sexist language", "sexist", "hateful", "extremist", "slur",
+    "discriminates against women", "discriminate", "sexism", "hitting a child", "racial", "offensive",
+    "hoax", "a conspiracy theory","sexual intercourse", "insensitive", "romantic relationship between adult and minor", 
+    "racism", "soliciting prostitution", "sensitive topic", "sexual orientation", "hate", "assault", "hate speech","hate",
+    
 ]):
                 review = "negative"
             else:
-                review += "not defined"
+                review = "not defined"
 
            
             # Write processed row to the output file
