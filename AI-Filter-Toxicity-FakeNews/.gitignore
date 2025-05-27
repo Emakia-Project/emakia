@@ -1,0 +1,8 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# Ignore virtual environment folders
+venv/
+selenium_env/
+__pycache__/
+
+# Ignore environment variables file (stores API keys)
+.env
