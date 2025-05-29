@@ -3,6 +3,7 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import OpenAI
 import os
 import requests
+import time
 from dotenv import load_dotenv
 import praw  # Reddit API
 from bs4 import BeautifulSoup  # Web scraping
@@ -66,47 +67,67 @@ def get_reddit_posts(subreddit: str, limit=2):
         print(f"Reddit API Error: {e}")
     return posts
 
-def get_foxnews_articles():
-    articles = []
 
-    """Fetch latest foxnews articles and verify output."""
-    url = "https://www.foxnews.com"
+def get_maxnews_articles():
+    main_url = 'https://www.newsmax.com'
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
 
-    try:
-        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, "html.parser")
+    response = requests.get(main_url, headers=headers)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    articles = soup.findAll('div', class_='nmNewsfrontHead')
 
-            # Adjust selector based on foxnews structure
-            headlines = soup.find_all("h2", class_="article-title")  # Example class name
+    parsed_articles = []  # Store extracted data
+    for index, article in enumerate(articles[:3]):  # Limit to 3 articles
+        a_tag = article.find('a')
+        if not a_tag:
+            continue
 
-            if headlines:
-                print("✅ Successfully retrieved foxnewsTV articles.")
-                for i, headline in enumerate(headlines[:5]):  # Get top 5 articles
-                    print(f"🔹 Article {i+1}: {headline.text.strip()}")
-                    articles.append({"title": headline.text.strip(), "content": headline['href']})
-            else:
-                print("❌ No headlines found. Check the selector.")
-        else:
-            print(f"❌ foxnews Scraper Error: {response.status_code}")
-    except Exception as e:
-        print(f"🚨 foxnews Scraper Request Error: {e}")
-    return articles
+        title = a_tag.text.strip()
+        link = a_tag['href']
+        if link.startswith('/'):
+            link = f'{main_url}{link}'
 
+        try:
+            article_response = requests.get(link, headers=headers)
+            article_soup = BeautifulSoup(article_response.content, 'html.parser')
+            content_div = article_soup.find('div', attrs={'id': 'mainArticleDiv'})
+            content = content_div.get_text(strip=True, separator='\n') if content_div else "No content found."
+
+            parsed_articles.append({"title": title, "link": link, "content": content})
+        except Exception as e:
+            print(f'Error fetching article: {e}')
+        
+        time.sleep(1)  # Wait before fetching next article
+    
+    return parsed_articles  # Return structured data
 @app.get("/fetch_posts")
 async def fetch_social_media_posts():
-    """Fetch 2 Reddit & 2 Fox News articles, analyze bias, and detect fake news."""
+    """Fetch 2 Reddit & 2 max News articles, analyze bias, and detect fake news."""
     reddit_data = get_reddit_posts("politics", limit=2)  # Fetching fewer articles for speed
-    foxnews_data = get_foxnews_articles()  # Fetching fewer Fox News articles
+    maxnews_data = get_maxnews_articles()  # Fetching fewer max News articles
 
-    if not foxnews_data:
-        print("❌ No data retrieved from Fox News.")
+    if not maxnews_data:
+        print("❌ No data retrieved from max News.")
     else:
-        print(f"✅ Fox News Data: {foxnews_data}")
+        print(f"✅ max News Data: {maxnews_data}")
 
+    
     # Analyze fake news and bias detection on each post
-    for post in reddit_data + foxnews_data:
-        post["fake_news"] = fake_news_chain.invoke({"content": post["content"]}).strip()
-        post["bias_analysis"] = bias_chain.invoke({"content": post["content"]}).strip()
+    for post in reddit_data + maxnews_data:
+        
+        if "content" in post and post["content"]:
+            post["fake_news"] = fake_news_chain.invoke({"content": post["content"]}).strip()
+            post["bias_analysis"] = bias_chain.invoke({"content": post["content"]}).strip()
+        else:
+            post["fake_news"] = "❌ No content available for analysis."
+            post["bias_analysis"] = "❌ No content available for analysis."
 
-    return {"reddit_posts": reddit_data, "foxnews_articles": foxnews_data}
+    return {"reddit_posts": reddit_data, "maxnews_articles": maxnews_data}
+
+
+
+
