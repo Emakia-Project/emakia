@@ -3,7 +3,7 @@ import requests
 
 API_URL = "http://127.0.0.1:8000"
 
-st.title("Reddit & foxnews Fake News & Bias Analysis")
+st.title("Reddit & Maxnews Fake News & Bias Analysis")
 
 if st.button("Fetch Latest Posts"):
     response = requests.get(f"{API_URL}/fetch_posts")  # Fetch posts from backend
@@ -11,7 +11,7 @@ if st.button("Fetch Latest Posts"):
     if response.status_code == 200:
         results = response.json()
         reddit_posts = results.get("reddit_posts", [])
-        foxnews_articles = results.get("foxnews_articles", [])  # Changed from Facebook to foxnews
+        maxnews_articles = results.get("maxnews_articles", [])  # Changed from Facebook to maxnews
 
         # Display Reddit Content Analysis
         st.header("🔴 Reddit Content Analysis")
@@ -25,12 +25,12 @@ if st.button("Fetch Latest Posts"):
                 st.write(f"⚖ **Bias Analysis:** {post.get('bias_analysis', 'No bias analysis available')}")
                 st.write("---")
 
-        # Display foxnews Content Analysis
-        st.header("🔵 foxnews Content Analysis")
-        if not foxnews_articles:
-            st.write("❌ No foxnews articles found.")
+        # Display maxnews Content Analysis
+        st.header("🔵 maxnews Content Analysis")
+        if not maxnews_articles:
+            st.write("❌ No Maxnews articles found.")
         else:
-            for post in foxnews_articles:
+            for post in maxnews_articles:
                 st.write(f"**Title:** {post.get('title', 'No title available')}")
                 st.write(f"🔗 **Source:** [Read more here]({post.get('content', '#')})")  # Link to original article
                 st.write(f"📌 **Fake News Detection:** {post.get('fake_news', 'No analysis available')}")
