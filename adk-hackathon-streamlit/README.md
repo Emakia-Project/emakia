@@ -1,113 +1,101 @@
-# Google Agent Development Kit (ADK) Tutorial Examples
+# 🧠 Multi-Agent Analyzer for Toxicity, Bias & Misinformation (Built with Google ADK)
 
-This repository contains the example code demonstrated in the YouTube tutorial "Building Powerful AI Agents with Google ADK: A Complete Step-by-Step Guide".
+This project is a multi-agent system built with Google's Agent Development Kit (ADK) and Gemini Flash, designed for the [Hackathon Name]. It automates the detection of **toxicity**, **bias**, and **misinformation** from real-world sources (Reddit, Maxnews, etc.) and optionally derives further insights via BigQuery analysis.
 
-## Overview
+Streamlit powers the interactive front end, while each step is modularized into ADK-compliant agents to ensure extensibility, transparency, and replicability.
 
-These examples illustrate key concepts of the Google Agent Development Kit (ADK), a Python framework for building, evaluating, and deploying AI agents. They cover:
+---
 
-* Basic agent creation and tool definition
-* Workflow orchestration using Sequential, Parallel, and Loop agents
-* Advanced concepts like Agents-as-Tools and built-in tools (Search, Code Execution)
-* Deployment to Google Cloud (Vertex AI Agent Engine)
-* Building simple UIs for agents using Streamlit
+## 📌 Features
 
-## Prerequisites
+- 🤖 **LLM Agents** using Gemini 2.0 Flash
+- 🧠 **Sequential and Parallel Execution** powered by Google ADK
+- 📊 **BigQuery Integration** for data-driven trend analysis (optional)
+- 📰 **Live Data** pulled from Reddit and news sites
+- 📦 Easy-to-install: hosted app, public repo, plug-and-play `.env` setup
+- 📺 Demo-ready via Streamlit UI
 
-* Python (3.9+ recommended)
-* Virtual Environment (`venv`)
-* Google Cloud Project (for deployment examples)
-* API Keys (Google AI Gemini API Key) stored securely in `.env` files or environment variables
+---
 
-## Setup
+## 🛠️ Tech Stack
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/googleADK1.git
-   cd googleADK1
-   ```
+| Layer         | Technology                                 |
+|---------------|---------------------------------------------|
+| Agent Framework | Google ADK (python package `google-adk`) |
+| LLM APIs      | Gemini 2.0 Flash via `google-generativeai` |
+| Data Pipeline | Reddit API, Custom News Scrapers           |
+| UI            | Streamlit                                  |
+| Storage       | (Optional) Google BigQuery for Analysis    |
+| Orchestration | `ParallelAgent`, `SequentialAgent`, `LlmAgent` (ADK) |
 
-2. **Create and activate a virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/macOS
-   # venv\Scripts\activate  # Windows
-   ```
+---
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 📁 Project Structure
 
-4. **Configure API Keys:**
-   * Create a `.env` file in the project root and add your API keys:
-     ```
-     GOOGLE_API_KEY=your_google_api_key_here
-     ```
-   * Some scripts may expect environment variables instead of `.env` files.
+```bash
+adk-hackathon-streamlit/
+├── main.py                  # Streamlit app and runner logic
+├── agents/                  # Modular ADK agent definitions
+├── diagram.png              # Architecture overview
+├── requirements.txt         # All Python dependencies
+├── .env.example             # Template for required secrets
+├── debug_logs.txt           # Runtime debug logs
+├── README.md                # You're reading it :)
 
-## Examples
+## 🧪 Local Setup
 
-### 1. Multi-Tool Agent Quickstart (`multi_tool_agent_quickstart/`)
+### Clone & Enter the Repo
+```bash
+git clone https://github.com/your-username/adk-hackathon-streamlit.git
+cd adk-hackathon-streamlit
 
-* **File:** `agent.py`
-* **Concept:** Demonstrates building your first simple agent (`weather_time_agent`) using basic Python functions (`get_weather`, `get_current_time`) as tools. Illustrates agent definition, instructions, and tool docstrings.
-* **Corresponds to Tutorial:** Setup, Building Your First Agent, Defining Tools & Agent Logic.
-* **To Run:** Typically run via `adk dev <path_to_agent_py>` or integrated into other scripts.
 
-### 2. Core ADK Samples (`samples from adk documention/`)
-
-These scripts showcase core ADK features, often run directly.
-
-* **`sequentialagent.py`**: Demonstrates `SequentialAgent` for a code generation pipeline (Write -> Review -> Refactor). Uses `LlmAgent` and session state.
-  * **Concept:** Sequential Workflow Orchestration.
-  * **Corresponds to Tutorial:** SequentialAgent for Pipelines.
-  * **To Run:** `python "samples from adk documention/sequentialagent.py"`
-
-* **`parallelagent.py`**: Demonstrates `ParallelAgent` for concurrent web research on multiple topics using `LlmAgent` and the built-in `google_search` tool.
-  * **Concept:** Parallel Workflow Orchestration, Built-in Tools.
-  * **Corresponds to Tutorial:** ParallelAgent for Concurrent Tasks, Built-in Tools.
-  * **To Run:** `python "samples from adk documention/parallelagent.py"`
-
-* **`loopagent.py`**: Demonstrates `LoopAgent` for iterative document writing and refinement. Uses `LlmAgent` and session state.
-  * **Concept:** Iterative Workflow Orchestration.
-  * **Corresponds to Tutorial:** LoopAgent for Iterative Processes.
-  * **To Run:** `python "samples from adk documention/loopagent.py"`
-
-* **`deploy_agent.py`**: Demonstrates defining agents-as-tools (specialized translators) and deploying the root agent to **Vertex AI Agent Engine**. Requires Google Cloud setup.
-  * **Concept:** Agents-as-Tools, Deployment.
-  * **Corresponds to Tutorial:** Agents-as-Tools, Deployment Option 1: Vertex AI Agent Engine.
-  * **To Run:** `python "samples from adk documention/deploy_agent.py"` (Requires GCP configuration)
-
-### 3. Streamlit UI Examples (`strealit use cases/`)
-
-These examples wrap ADK agents in Streamlit web interfaces. Run them using `streamlit run <path_to_script.py>`.
-
-* **`streamlit_code_gen_and_enhancer_sequential_agent.py`**: UI for the sequential code pipeline, including code execution using `built_in_code_execution`.
-
-* **`streamlit_research_parallel_agent.py`**: UI for parallel research, including dynamic subtopic generation and report synthesis.
-
-* **`streamlit_pitch_optimizer_loop_agent.py`**: UI for the iterative pitch refinement loop (Critic -> Writer).
-
-* **`streamlit_multi_agents_agents_as_tools.py`**: UI demonstrating a multi-agent "Tutor Bot" where specialists (Math, Spanish, Search) are used as *tools* (`AgentTool`). Includes configurable instructions and guardrails.
-
-* **`streamlit_multi_agents_subagents.py`**: UI demonstrating a *hybrid* multi-agent "Tutor Bot" using `sub_agents` for Math/Spanish and `AgentTool` for Search.
-
-* **`streamlit_agent_engine_remote_agent.py`**: UI to connect to and interact with an agent already *deployed* on Vertex AI Agent Engine (like the one from `deploy_agent.py`).
-
-### 4. Agent Management CLI (`agent_management_cli.py`)
-
-* **Concept:** A command-line tool to manage agents deployed on Vertex AI (List, Update, Delete).
-* **Corresponds to Tutorial:** Deployment (Management aspect).
-* **To Run:** `python agent_management_cli.py` (Requires GCP configuration)
-
-## Resources
-
-* **YouTube Tutorial:** [Building Powerful AI Agents with Google ADK: A Complete Step-by-Step Guide](https://www.youtube.com/your_video_link)
-* **Google ADK Documentation:** https://developers.google.com/vertex-ai/docs/agent-builder/agents/adk/overview
-* **Google ADK GitHub:** https://github.com/google/agent-development-kit
-* **ADK Samples:** https://github.com/google/agent-development-kit/tree/main/samples
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+###Create Environment & Install Dependencies
+```bash
+python3 -m venv env && source env/bin/activate
+pip install -r requirements.txt
+Configure Environment Variables
+```bash
+cp .env.example .env  # then fill in your API keys and credentials
+Run the App
+```bash
+streamlit run main.py
+🎯 How It Works
+Data Fetching
+Pulls the latest Reddit posts (/r/politics) and headlines from Maxnews.
+Sequential Agent Chain
+Passes each item through LLM agents:
+ToxicityAnalyst
+BiasAnalyst
+MisinformationAnalyst
+(Optional) BigQuery Agent
+Aggregates high-risk patterns into data queries for trend summarization.
+UI Output
+Displays per-item analysis results inside Streamlit.
+Logs are persisted for review and scoring.
+###📊 Architecture Diagram
+###🚀 Submission Checklist
+[x] ✅ Hosted Project with working UI
+[x] ✅ Public GitHub repository
+[x] ✅ Text description (you're reading it!)
+[x] ✅ Architecture diagram (diagram.png)
+[x] ✅ 3-minute demo video on YouTube/Vimeo (link goes here)
+[x] ✅ Code supports English language input/output
+[x] ✅ Original work using public/open API keys only
+###📝 Environment Variables
+See .env.example for a full list, including:
+GOOGLE_API_KEY
+REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET
+GOOGLE_CLOUD_PROJECT_ID
+GOOGLE_APPLICATION_CREDENTIALS
+Optionally: BROWSERBASE_API_KEY, OPENAI_API_KEY, FACEBOOK_ACCESS_TOKEN, etc.
+###📚 Learnings & Takeaways
+Building modular ADK agents made error isolation and debugging easy.
+Gemini’s performance with focused instructions significantly improved result quality.
+Streamlit offered a fast way to iterate on visualization and feedback loops.
+Managing environment variables securely and scalably across platforms remains essential.
+Custom agents can be deeply personalized to specific content types and domains.
+###🧑‍💻 Authors
+Created by Corinne David, with support from Microsoft Copilot and Google’s ADK framework.
+📄 License
+MIT License – please see LICENSE for details.
