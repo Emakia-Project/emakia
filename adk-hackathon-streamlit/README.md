@@ -50,6 +50,30 @@ adk-hackathon-streamlit/
 ```
 
 ---
+## 📁 Expanded Modular Structure
+
+```bash
+
+adk-hackathon-streamlit/
+├── app/
+│   ├── main.py
+│   └── session.py
+├── agents/
+│   ├── root_agent.py
+│   ├── correlation_agent.py
+│   └── sub_agents/
+│       ├── toxicity_agent.py
+│       ├── bias_agent.py
+│       └── misinformation_agent.py
+├── inputs/
+│   ├── reddit_scraper.py
+│   ├── maxnews_scraper.py
+│   └── bigquery_loader.py
+├── .env.template
+├── requirements.txt
+├── README.md
+└── diagram.png
+
 
 ## 🧪 Local Setup
 
