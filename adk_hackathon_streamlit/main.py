@@ -17,6 +17,16 @@ from inputs.reddit_scraper import get_reddit_posts
 from inputs.maxnews_scraper import get_maxnews_articles
 from inputs.bigquery_loader import get_tweets_from_bigquery
 
+import json
+import os
+
+# write the secret to a temp file for BigQuery client
+with open("emakia_hackthon_BQGoogle.json", "w") as f:
+    f.write(st.secrets["bq"]["creds"])
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "emakia_hackthon_BQGoogle.json"
+
+
 # --- Load environment variables ---
 load_dotenv()
 
