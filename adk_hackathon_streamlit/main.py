@@ -21,8 +21,8 @@ import json
 import os
 
 # write the secret to a temp file for BigQuery client
-with open("emakia_hackthon_BQGoogle.json", "w") as f:
-    f.write(st.secrets["bq"]["creds"])
+#with open("emakia_hackthon_BQGoogle.json", "w") as f:
+    #f.write(st.secrets["bq"]["creds"])
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "emakia_hackthon_BQGoogle.json"
 
