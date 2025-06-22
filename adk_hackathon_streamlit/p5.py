@@ -1,21 +1,27 @@
+import json
+from google.oauth2 import service_account
 from google.cloud import bigquery
-from dotenv import load_dotenv
+import streamlit as st
 import os
-from google.cloud import bigquery
 
-# Path to your service account key JSON file
-SERVICE_ACCOUNT_KEY_PATH = "/Users/corinnedavid/Downloads/emakia-236347b5f4b3.json"
 
-# Construct a BigQuery client object with credentials
-client = bigquery.Client.from_service_account_json(SERVICE_ACCOUNT_KEY_PATH)
-# Load environment variables (including credentials path)
-load_dotenv()
+bq_creds_dict = dict(st.secrets["bq"]["creds"])
+
+
+# Write to a temporary file
+cred_path = "/tmp/bq_creds.json"
+with open(cred_path, "w") as f:
+    json.dump(bq_creds_dict, f)
+
+# Load credentials from the temp file
+creds = service_account.Credentials.from_service_account_file(cred_path)
+#client = bigquery.Client(credentials=creds, project=creds.project_id)
+
 
 # Initialize BigQuery client
 def init_bigquery_client():
     try:
-        # Construct a BigQuery client object with credentials
-        client = bigquery.Client.from_service_account_json(SERVICE_ACCOUNT_KEY_PATH)
+        client = bigquery.Client(credentials=creds, project=creds.project_id)
         print("✅ BigQuery client initialized.")
         return client
     except Exception as e:
