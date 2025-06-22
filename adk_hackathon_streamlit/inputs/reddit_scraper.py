@@ -1,5 +1,6 @@
 import praw
 import os
+import requests
 
 # --- Configure Reddit API ---
 reddit = praw.Reddit(
