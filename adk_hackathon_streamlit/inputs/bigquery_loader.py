@@ -3,19 +3,45 @@ from dotenv import load_dotenv
 import os
 from google.cloud import bigquery
 
-# Path to your service account key JSON file
-SERVICE_ACCOUNT_KEY_PATH = "/Users/corinnedavid/Downloads/emakia-236347b5f4b3.json"
+import streamlit as st
+from google.oauth2 import service_account
 
-# Construct a BigQuery client object with credentials
-client = bigquery.Client.from_service_account_json(SERVICE_ACCOUNT_KEY_PATH)
-# Load environment variables (including credentials path)
-load_dotenv()
+
+# Path to your service account key JSON file
+
+
+
+# Access your service account credentials from secrets.toml
+bq_creds_dict = dict(st.secrets["bq"]["creds"])
+
+# Fix line breaks in the private key if needed
+if "\\n" in bq_creds_dict["private_key"]:
+    bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
+
+
+
+
+# Load credentials from secrets
+bq_creds_dict = dict(st.secrets["bq"]["creds"])
+print("bq_creds_dict-private_key")
+print(bq_creds_dict["private_key"])
+# Fix the private key line breaks, if they’ve been escaped
+if "\\n" in bq_creds_dict["private_key"]:
+    bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
+
 
 # Initialize BigQuery client
 def init_bigquery_client():
     try:
         # Construct a BigQuery client object with credentials
-        client = bigquery.Client.from_service_account_json(SERVICE_ACCOUNT_KEY_PATH)
+
+        
+        # Create credentials from the in-memory dictionary
+        creds = service_account.Credentials.from_service_account_info(bq_creds_dict)
+
+        # Initialize BigQuery client
+        client = bigquery.Client(credentials=creds, project=creds.project_id)
+
         print("✅ BigQuery client initialized.")
         return client
     except Exception as e:
