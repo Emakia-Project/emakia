@@ -1,6 +1,7 @@
 import praw
 import os
 import requests
+
 import streamlit as st
 
 print("Redditsecret")
@@ -11,6 +12,7 @@ reddit = praw.Reddit(
     client_secret=st.secrets["REDDIT_CLIENT_SECRET"],
     user_agent=st.secrets["REDDIT_USER_AGENT"]
 )
+
 
 
 
