@@ -2,6 +2,7 @@ from google.cloud import bigquery
 from dotenv import load_dotenv
 import os
 from google.cloud import bigquery
+
 import streamlit as st
 from google.oauth2 import service_account
 
@@ -28,16 +29,19 @@ print(bq_creds_dict["private_key"])
 if "\\n" in bq_creds_dict["private_key"]:
     bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
 
+
 # Initialize BigQuery client
 def init_bigquery_client():
     try:
         # Construct a BigQuery client object with credentials
+
         
         # Create credentials from the in-memory dictionary
         creds = service_account.Credentials.from_service_account_info(bq_creds_dict)
 
         # Initialize BigQuery client
         client = bigquery.Client(credentials=creds, project=creds.project_id)
+
         print("✅ BigQuery client initialized.")
         return client
     except Exception as e:

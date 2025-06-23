@@ -12,8 +12,10 @@ from google.adk.agents.parallel_agent import ParallelAgent
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.runners import Runner
 from google.genai import types
+
 from google.oauth2 import service_account
 from google.cloud import bigquery
+
 
 from inputs.reddit_scraper import get_reddit_posts
 from inputs.maxnews_scraper import get_maxnews_articles
@@ -22,7 +24,9 @@ from inputs.bigquery_loader import get_tweets_from_bigquery
 import json
 import os
 
+
 import db_dtypes  # 👈 Ensures custom BigQuery types are handled
+
 
 
 
@@ -30,6 +34,7 @@ import db_dtypes  # 👈 Ensures custom BigQuery types are handled
 
 # --- Load environment variables ---
 load_dotenv()
+
 
 
 
@@ -58,6 +63,7 @@ if "\\n" in bq_creds_dict["private_key"]:
 
 
 
+
 # --- Constants ---
 APP_NAME = "toxicity_misinformation_analysis"
 USER_ID = f"user_{uuid.uuid4()}"
@@ -67,7 +73,9 @@ debug_logs = []
 
 # --- Configure Gemini API ---
 try:
+
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+
     genai.configure(api_key=GOOGLE_API_KEY)
 except KeyError:
     st.error("Missing GOOGLE_API_KEY in environment.")
