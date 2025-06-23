@@ -1,54 +1,36 @@
-from google.cloud import bigquery
-from dotenv import load_dotenv
 import os
-from google.cloud import bigquery
-
 import streamlit as st
 from google.oauth2 import service_account
+from google.cloud import bigquery
 
+# --- Load and format credentials from Streamlit secrets ---
+def load_bq_credentials():
+    bq_creds_dict = dict(st.secrets["bq"]["creds"])
 
-# Path to your service account key JSON file
+    # Fix escaped newlines in the private key
+    if "\\n" in bq_creds_dict["private_key"]:
+        bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
 
+    return bq_creds_dict
 
-
-# Access your service account credentials from secrets.toml
-bq_creds_dict = dict(st.secrets["bq"]["creds"])
-
-# Fix line breaks in the private key if needed
-if "\\n" in bq_creds_dict["private_key"]:
-    bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
-
-
-
-
-# Load credentials from secrets
-bq_creds_dict = dict(st.secrets["bq"]["creds"])
-print("bq_creds_dict-private_key")
-print(bq_creds_dict["private_key"])
-# Fix the private key line breaks, if they’ve been escaped
-if "\\n" in bq_creds_dict["private_key"]:
-    bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
-
-
-# Initialize BigQuery client
+# --- Initialize BigQuery client with explicit project ID ---
 def init_bigquery_client():
     try:
-        # Construct a BigQuery client object with credentials
+        creds_dict = load_bq_credentials()
+        creds = service_account.Credentials.from_service_account_info(creds_dict)
+        project_id = creds_dict.get("project_id")
 
-        
-        # Create credentials from the in-memory dictionary
-        creds = service_account.Credentials.from_service_account_info(bq_creds_dict)
+        if not project_id:
+            raise ValueError("❌ Missing 'project_id' in credentials.")
 
-        # Initialize BigQuery client
-        client = bigquery.Client(credentials=creds, project=creds.project_id)
-
+        client = bigquery.Client(credentials=creds, project=project_id)
         print("✅ BigQuery client initialized.")
         return client
     except Exception as e:
         print(f"❌ Error initializing BigQuery client: {e}")
         return None
 
-# Fetch tweets with cleaned content and link parsing
+# --- Query tweets from BigQuery and extract text/link pairs ---
 def get_tweets_from_bigquery(limit=25, offset=50):
     client = init_bigquery_client()
     if not client:
@@ -64,42 +46,36 @@ def get_tweets_from_bigquery(limit=25, offset=50):
 
     try:
         results = client.query(query).result()
-        seen_contents = set()
-        tweets = []
+        tweets, seen_contents = [], set()
 
         for row in results:
             raw_text = row.text.strip()
+            content, link = raw_text, None
 
-            # Extract link from text (if present)
             if "https://" in raw_text:
-                content_part, link_part = raw_text.split("https://", 1)
-                content = content_part.strip()
+                content, link_part = raw_text.split("https://", 1)
+                content = content.strip()
                 link = "https://" + link_part.strip()
-            else:
-                content = raw_text
-                link = None
 
             if content not in seen_contents:
                 tweets.append({
-                    #"id": row.id,
                     "title": row.id,
                     "content": content,
                     "link": link,
-                    #"sensitive": row.possibly_sensitive
                 })
                 seen_contents.add(content)
 
-        print(f"✅ Retrieved {len(tweets)} unique tweets with cleaned content + link.")
+        print(f"✅ Retrieved {len(tweets)} unique tweets.")
         return tweets
 
     except Exception as e:
         print(f"❌ Failed to fetch tweets: {e}")
         return []
 
-# --- Run as standalone test ---
+# --- Standalone testing block ---
 if __name__ == "__main__":
     tweets = get_tweets_from_bigquery()
     for i, tweet in enumerate(tweets, 1):
-        print(f"{i}. Row ID: {tweet['id']} | Sensitive: {tweet['sensitive']}")
+        print(f"{i}. ID: {tweet['title']}")
         print(f"   Content: {tweet['content']}")
         print(f"   Link: {tweet['link']}\n")
