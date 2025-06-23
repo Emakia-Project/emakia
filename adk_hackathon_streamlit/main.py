@@ -12,6 +12,8 @@ from google.adk.agents.parallel_agent import ParallelAgent
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.runners import Runner
 from google.genai import types
+from google.oauth2 import service_account
+from google.cloud import bigquery
 
 from inputs.reddit_scraper import get_reddit_posts
 from inputs.maxnews_scraper import get_maxnews_articles
@@ -20,12 +22,41 @@ from inputs.bigquery_loader import get_tweets_from_bigquery
 import json
 import os
 
+import db_dtypes  # 👈 Ensures custom BigQuery types are handled
+
 
 
 
 
 # --- Load environment variables ---
 load_dotenv()
+
+
+
+# Access your service account credentials from secrets.toml
+bq_creds_dict = dict(st.secrets["bq"]["creds"])
+
+# Fix line breaks in the private key if needed
+if "\\n" in bq_creds_dict["private_key"]:
+    bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
+
+# Create credentials from the in-memory dictionary
+creds = service_account.Credentials.from_service_account_info(bq_creds_dict)
+
+# Initialize BigQuery client
+client = bigquery.Client(credentials=creds, project=creds.project_id)
+
+
+
+# Load credentials from secrets
+bq_creds_dict = dict(st.secrets["bq"]["creds"])
+print("bq_creds_dict-private_key")
+print(bq_creds_dict["private_key"])
+# Fix the private key line breaks, if they’ve been escaped
+if "\\n" in bq_creds_dict["private_key"]:
+    bq_creds_dict["private_key"] = bq_creds_dict["private_key"].replace("\\n", "\n")
+
+
 
 # --- Constants ---
 APP_NAME = "toxicity_misinformation_analysis"
@@ -36,7 +67,7 @@ debug_logs = []
 
 # --- Configure Gemini API ---
 try:
-    GOOGLE_API_KEY = os.environ["GOOGLE_API_KEY"]
+    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=GOOGLE_API_KEY)
 except KeyError:
     st.error("Missing GOOGLE_API_KEY in environment.")
