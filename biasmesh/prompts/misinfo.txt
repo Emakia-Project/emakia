@@ -1,0 +1,3 @@
+Does this tweet contain misinformation? 
+Respond with: Misinformation, Accurate, or ⚠️ Unknown
+- One sentence explaining your classification
