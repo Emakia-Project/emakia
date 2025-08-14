@@ -1,0 +1,11 @@
+tweet_id,text,label,emoji,llm_sentiment,llm_confidence,llm_reasoning
+1,"I love this new product! It's amazing!",positive,😍,positive,0.95,"The text contains positive words like 'love' and 'amazing' indicating strong positive sentiment"
+2,"This service is terrible. Worst experience ever.",negative,😡,negative,0.98,"The text contains negative words like 'terrible' and 'worst' indicating strong negative sentiment"
+3,"The weather is nice today.",neutral,😊,positive,0.75,"The text contains 'nice' which is positive, though the overall tone is relatively neutral"
+4,"Can't believe how good this movie was!",positive,🎉,positive,0.92,"The text expresses excitement and positive sentiment with 'how good' and exclamation mark"
+5,"Disappointed with the quality.",negative,😞,negative,0.89,"The text contains 'disappointed' which clearly indicates negative sentiment"
+6,"Just another regular day.",neutral,😐,neutral,0.85,"The text describes a typical day without strong positive or negative language"
+7,"This food is delicious!",positive,😋,positive,0.94,"The text contains 'delicious' which is a strong positive descriptor"
+8,"Customer service was unhelpful.",negative,😤,negative,0.87,"The text contains 'unhelpful' which indicates negative sentiment"
+9,"The meeting went as expected.",neutral,🤔,neutral,0.80,"The text describes an expected outcome without strong sentiment either way"
+10,"Fantastic results from the project!",positive,🚀,positive,0.96,"The text contains 'fantastic' which is a strong positive descriptor"

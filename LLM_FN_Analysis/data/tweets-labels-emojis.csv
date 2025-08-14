@@ -1,0 +1,11 @@
+tweet_id,text,label,emoji
+1,"I love this new product! It's amazing!",positive,😍
+2,"This service is terrible. Worst experience ever.",negative,😡
+3,"The weather is nice today.",neutral,😊
+4,"Can't believe how good this movie was!",positive,🎉
+5,"Disappointed with the quality.",negative,😞
+6,"Just another regular day.",neutral,😐
+7,"This food is delicious!",positive,😋
+8,"Customer service was unhelpful.",negative,😤
+9,"The meeting went as expected.",neutral,🤔
+10,"Fantastic results from the project!",positive,🚀
