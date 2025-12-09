@@ -9,8 +9,7 @@
 import Foundation
 
 
-
-struct Tweet: Identifiable {
+struct Tweet: Identifiable, Decodable {
     let id: String
     let name: String?
     let username: String?
@@ -20,15 +19,28 @@ struct Tweet: Identifiable {
     let possibly_sensitive: Bool
     let referenced_tweet_id: String?
     let referenced_tweet_type: String?
-
-    // Add this line
     let media_url: String?
-    
-    // Optional metadata
     let likeCount: Int?
     let retweetCount: Int?
     let replyCount: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "tweet_id"  // Maps JSON "tweet_id" to Swift "id"
+        case name
+        case username
+        case profile_image_url
+        case created_at
+        case content
+        case possibly_sensitive
+        case referenced_tweet_id
+        case referenced_tweet_type
+        case media_url
+        case likeCount
+        case retweetCount
+        case replyCount
+    }
 }
+
 
 
 
