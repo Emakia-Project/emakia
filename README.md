@@ -1,73 +1,181 @@
-# Emakia, Machine Learning Project
+# Emakia System
 
-Emakia was inspired by the urgent need to combat online harassment and its harmful effects on marginalized groups, including women, people of color, and LGBTQI+ individuals. Addressing these issues is essential for protecting mental well-being and ensuring freedom of expression online. We're building an app to filter out toxic content on social media, but first, we need an efficient text classifier model and a smart AI system to validate labels and outputs.
+A machine learning project designed to combat online harassment by filtering toxic content on social media platforms. Emakia addresses the urgent need to protect marginalized groups, including women, people of color, and LGBTQI+ individuals, from harmful online interactions.
 
-## Project Directory Machine Learning Project Structure
+## Overview
 
-## Main Directory:
+Emakia is building an application to filter toxic content on social media. The project focuses on developing an efficient text classifier model and an AI system to validate labels and outputs. The system includes:
 
-## Apple Development
-  Core
-  Models
-  Preview Content/Preview Assets.xcassets
-  Services
-  TestingTableView.xcdatamodeld/TestingTableView.xcdatamodel
-  Persistence.swift
-  emakiaTweetsSentimentClassifier.mlmodel
-  env.docx
+- **Text Classifier Training**: Machine learning models for toxicity detection
+- **Label Validation**: LLM-based validation system using LangChain and OpenAI
+- **Apple Development**: iOS application with CoreML integration
+- **Google Cloud Integration**: Server-side processing and model deployment
+- **Data Processing**: Tools for data scraping, labeling, and preparation
 
-## Google Cloud Server Development 
-  # Text Classifier Training
-    Notebook: All the Jupyter notebooks used for EDA, visualization, and proof of concept (POC).
-    Node.js
-    Validation
-    evaluate_model_01.py: Different matrices used to validate the model.
-    evaluate_model_02.py: Different matrices used to validate the model.
-  # gcloud toolkit recent search
-    Twitter API Toolkit for Google Cloud: Recent Search
-    https://developer.twitter.com/en/docs/tutorials/developer-guide--twitter-api-toolkit-for-google-cloud
+## Project Structure
 
-## Data:
-  external: Data from third-party sources.
-  interim: Intermediate data that has been transformed.
-  processed: The final, canonical data sets for modeling.
-  raw: The original, immutable data dump.
+```
+emakia-system/
+├── apple_development/          # iOS application development
+│   ├── Enaelle/               # Main iOS app
+│   └── Models/                # CoreML models and playground files
+│
+├── backend-Google-iPhone/     # Backend services for iOS integration
+│   └── app.py                 # Main Flask/FastAPI application
+│
+├── google_cloud_server_development/
+│   ├── text_classifier_training/  # Model training pipelines
+│   │   ├── notebook/              # Jupyter notebooks for EDA and POC
+│   │   ├── emakia-node/           # Node.js training scripts
+│   │   └── validation/            # Model evaluation scripts
+│   └── gcloud-toolkit-recent-search/  # Twitter API integration
+│
+├── LLM-RAG-Toxicity-Evaluator/  # Label validation using LLMs
+│   ├── lang-chain-openai/       # OpenAI-based validation
+│   ├── Gemini/                  # Google Gemini integration
+│   ├── Grok/                    # Grok API integration
+│   └── Fireworks/               # Fireworks AI integration
+│
+├── LLM_FN_Analysis/            # False Negative analysis
+├── LLM_FP-Analysis/            # False Positive analysis
+├── load-Neo4j/                 # Graph database integration
+├── createnewlabels/            # Label generation and processing
+├── Scrapping/                  # Data scraping tools
+└── data/                       # Data storage (not in git)
+    ├── raw/                    # Original, immutable data
+    ├── interim/                # Intermediate transformed data
+    ├── processed/              # Final datasets for modeling
+    └── external/               # Third-party data sources
+```
 
-## Sraping Data
+## Key Components
 
-## LLM-RAG-Toxicity-Evaluator/lang chain-openai
-  First, we are evaluating the label file that we train our text classifier Vertex AI and CoreML with langchain-openai.
-  Approach 1
-  "You are a sentiment analyst. Analyze the following statement and respond with either 'positive' or 'negative'."
-  Approach 2
-  "Analyze the following statement and explain your choice of overall sentiment." Focus on analyzing Arrays 3 and 4, representing false negatives and false positives.
-  LangChain Overview LangChain is an open-source framework designed to simplify the creation of applications using large language models (LLMs). It provides a standard interface for chaining multiple LLMs together, allowing developers to build more complex and powerful applications.
-  LangChain-OpenAI Integration LangChain integrates with OpenAI models to enhance their capabilities by chaining multiple language model calls and incorporating external tools. This is useful for building complex applications that require advanced language understanding and interaction.
-  
-  # Environment Setup
-  Create the .env file with:
-  OPENAI_API_KEY=your_openai_api_key
-  
-  export LANGCHAIN_PROJECT=default
-  Virtual Environment (Recommended)
-  Create: python3 -m venv env
-  Activate: source env/bin/activate
-  Install: pip install langchain_openai
-  
-  # Code 
-  evaluateLabelswithLangchain.py
-  resultsfromLabelValidation.py
-  evaluate-with-lexicon.py
-  
-  # Results for our label file.
-  Evaluation Findings During the evaluation of training labels using the LLM, we found that 2% of the label data contained only return characters, causing them to not match the conditions. These invalid entries need to be cleaned from the training set to improve label accuracy.
-  Performance Analysis
-  True Positive (TP): Harassment content predicted by LLM and labeled as “0”: 31.50%
-  True Negative (TN): Neutral content predicted by LLM and labeled as “1”: 41.68%
-  False Negative (FN): Harassment content predicted by LangChainOpenAI and labeled as “1”: 24.68%
-  False Positive (FP): Neutral content predicted by LLM and labeled as “0”: 2.12%
-  Currently, 73.18% of the labels (31.50% + 41.68%) are correct, while 26.8% (24.68% + 2.12%) are mislabeled. It is still unclear whether this discrepancy is due to poor LLM performance or incorrect labeling.
-  
-  \***\*Note\*\***: The `data` folder and `.env` file won’t appear in github. It will be in your local folder. This is not pushed to githhub as it will be in the ignore list (`.gitignore` file). If you want to checkin that also, just comment out in `.gitignore` file and add the data folder to github.
+### Text Classifier Training
 
-# emakia
+Training pipelines for toxicity detection models:
+- Jupyter notebooks for exploratory data analysis (EDA) and proof of concept
+- Node.js scripts for data processing
+- Validation scripts for model evaluation (`evaluate_model_01.py`, `evaluate_model_02.py`)
+
+### LLM-Based Label Validation
+
+The system uses multiple LLM providers to validate training labels:
+- **LangChain-OpenAI**: Primary validation system
+- **Gemini**: Google's model integration
+- **Grok**: X.AI integration
+- **Fireworks**: Additional validation provider
+
+#### Label Validation Results
+
+Evaluation findings from LLM-based validation:
+- **True Positive (TP)**: 31.50% - Harassment correctly identified
+- **True Negative (TN)**: 41.68% - Neutral content correctly identified
+- **False Negative (FN)**: 24.68% - Harassment missed (mislabeled as neutral)
+- **False Positive (FP)**: 2.12% - Neutral content flagged as harassment
+
+**Overall Accuracy**: 73.18% (TP + TN)
+**Error Rate**: 26.82% (FN + FP)
+
+**Note**: 2% of training labels contained only return characters and need to be cleaned.
+
+### Apple Development
+
+iOS application components:
+- SwiftUI/Cocoa application
+- CoreML model integration (`emakiaTweetsSentimentClassifier.mlmodel`)
+- Data persistence layer
+
+### Google Cloud Integration
+
+- Vertex AI model training and deployment
+- BigQuery data processing
+- Twitter API toolkit integration for data collection
+
+## Setup Instructions
+
+### Prerequisites
+
+- Python 3.x
+- Node.js (for backend services)
+- Xcode (for iOS development)
+- Google Cloud SDK (for cloud services)
+- OpenAI API key (for LLM validation)
+
+### Environment Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Emakia-Project/emakia.git
+   cd emakia-system
+   ```
+
+2. **Python Virtual Environment**:
+   ```bash
+   python3 -m venv env
+   source env/bin/activate  # On Windows: env\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **LangChain-OpenAI Setup**:
+   ```bash
+   pip install langchain_openai
+   export LANGCHAIN_PROJECT=default
+   ```
+
+4. **Environment Variables**:
+   Create a `.env` file in the `LLM-RAG-Toxicity-Evaluator/lang-chain-openai/` directory:
+   ```
+   OPENAI_API_KEY=your_openai_api_key
+   ```
+
+5. **Node.js Backend** (if using):
+   ```bash
+   cd google_cloud_server_development/text_classifier_training/emakia-node
+   npm install
+   ```
+
+## Data Management
+
+### Data Directory Structure
+
+The `data/` directory follows a standard ML project structure:
+- `raw/`: Original, immutable data dumps
+- `interim/`: Intermediate data that has been transformed
+- `processed/`: Final, canonical datasets for modeling
+- `external/`: Data from third-party sources
+
+**Important**: The `data/` folder and `.env` files are excluded from git via `.gitignore`. These must be set up locally. To include them in version control, modify the `.gitignore` file accordingly.
+
+## Model Validation Approaches
+
+The system uses two main approaches for label validation:
+
+1. **Direct Classification**: 
+   - Prompt: "You are a sentiment analyst. Analyze the following statement and respond with either 'positive' or 'negative'."
+
+2. **Explanation-Based Analysis**:
+   - Prompt: "Analyze the following statement and explain your choice of overall sentiment."
+   - Focuses on analyzing false negatives and false positives for model improvement
+
+## Key Scripts
+
+- `evaluateLabelswithLangchain.py`: Main label validation script
+- `evaluate_model_01.py`, `evaluate_model_02.py`: Model evaluation with various metrics
+- `evaluate-with-lexicon.py`: Lexicon-based evaluation
+- `generateCOREMLtraining_file.py`: CoreML training data preparation
+
+## References
+
+- [Twitter API Toolkit for Google Cloud](https://developer.twitter.com/en/docs/tutorials/developer-guide--twitter-api-toolkit-for-google-cloud)
+
+## License
+
+See [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+This is a private project. Please contact the maintainers for contribution guidelines.
+
+---
+
+**Note**: This project is under active development. Documentation and code are subject to change.
