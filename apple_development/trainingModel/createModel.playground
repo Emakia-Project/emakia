@@ -1,0 +1,44 @@
+import Cocoa
+import Foundation
+import CreateML
+
+let trainCSV = URL(fileURLWithPath: "-path to your training data - tweets-coreml-training.csv")
+
+let tweetsData = try MLDataTable(contentsOf: trainCSV)
+
+print(tweetsData.description)
+
+let (trainingData, testData) = tweetsData.randomSplit(by: 0.8, seed: 5)
+
+print(trainingData.columnNames)
+
+let sentimentClassifier = try MLTextClassifier(trainingData: trainingData,
+                                                   textColumn: "text",
+                                            labelColumn: "label")
+
+print(sentimentClassifier.description)
+print("algorithm Type", sentimentClassifier.modelParameters)
+
+//print("algorithm Type", MLTextClassifier.ModelAlgorithmType)
+// Training accuracy as a percentage
+let trainingAccuracy = (1.0 - sentimentClassifier.trainingMetrics.classificationError) * 100
+
+// Validation accuracy as a percentage
+let validationAccuracy = (1.0 - sentimentClassifier.validationMetrics.classificationError) * 100
+
+
+print("classificationError", sentimentClassifier.validationMetrics.classificationError)
+print("confusion", sentimentClassifier.validationMetrics.confusion)
+
+
+//let evaluationAccuracy = (1.0 - evaluationMetrics.classificationError) * 100
+print("precisionRecall", sentimentClassifier.validationMetrics.precisionRecall)
+
+let metadata = MLModelMetadata(author: "Corinne David",
+                               shortDescription: "A model trained to classify tweets harassement",
+                               version: "1.0")
+
+try sentimentClassifier.write(to: URL(fileURLWithPath: "path to your model /emakiaTweetsSentimentClassifier.mlmodel"),
+                              metadata: metadata)
+//print(evaluationMetrics)
+
