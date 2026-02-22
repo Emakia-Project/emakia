@@ -1,4 +1,4 @@
-I'm in Ask mode, so I can't create or edit files. Here's a README you can copy into a new README.md in your project root. If you switch to Agent mode, I can create and save it for you.
+
 README content
 # Emakia Tech API (backend-Google-iPhone)Flask API backend for the Emakia system. Ingests and serves ML toxicity predictions for tweets, backed by **Google BigQuery** (dataset: `emakia.politics2024`). Supports multiple model versions (llm0, llm3, llm4) in a single flow.## Features- **Store predictions**: POST ML prediction results (one or more of llm0, llm3, llm4) per tweet; duplicates are skipped.- **Tweet cascade**: GET tweets with predictions, with filters (topic, language, sensitivity, model, prediction type).- **Model comparison**: GET agreement statistics between models (llm0 vs llm3 vs llm4).- **Health**: Root and `/api/health` endpoints for status and BigQuery connectivity.## Requirements- Python 3.x- See `requirements.txt` for dependencies (Flask, `google-cloud-bigquery`, `python-dotenv`, gunicorn, streamlit optional, etc.)## Setup1. **Clone and install**   pip install -r requirements.txt   
 BigQuery credentials (one of):
