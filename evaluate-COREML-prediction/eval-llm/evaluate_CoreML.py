@@ -1,404 +1,334 @@
 """
-Consensus Analysis for CoreML and LLM Predictions
+Evaluate CoreML Predictions with LLMs
 
-This script analyzes the predictions from CoreML and multiple LLMs to:
-1. Find perfect agreement cases (all models agree)
-2. Find disagreement cases (at least one model differs)
-3. Perform majority voting to find true labels
-4. Analyze possibly_sensitive flag correlations
-5. Create deduplicated dataset and re-run analysis
+This script:
+1. Fetches CoreML predictions from BigQuery (all three models: llm0, llm3, llm4)
+2. Gets predictions from 6 LLMs (OpenAI, Gemini, Grok, Llama, DeepSeek, Claude)
+3. Saves results to CSV for consensus analysis
+
+Features:
+- Batch processing with resume capability
+- All 6 LLMs including Claude integrated
+- Handles all three CoreML model predictions
+- Progress tracking and error handling
 """
 
 import csv
 import os
-from collections import Counter
-from datetime import datetime
+import time
+from google.cloud import bigquery
+from dotenv import load_dotenv
+import sys
+
+# Add llm_wrappers folder to Python path (go up one level, then into llm_wrappers)
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(parent_dir, 'llm_wrappers'))
+
+# Load environment variables
+load_dotenv()
+
+# Import LLM wrappers
+from openai_wrapper import call_openai
+from gemini_wrapper import call_gemini
+from grok_wrapper import call_grok
+from llama_wrapper import call_llama
+from deepseek_wrapper import call_deepseek
+from claude_wrapper import call_claude
 
 # Configuration
-INPUT_FILE = "coreml_llm_predictions_log.csv"
-OUTPUT_DIR = "consensus_analysis"
+PROJECT_ID = "emakia"
+DATASET_ID = "politics2024"
+TABLE_ID = "CoreMLpredictions"
+OUTPUT_FILE = "coreml_llm_predictions_log.csv"
+BATCH_SIZE = 10  # Process in batches
+RESUME_FROM_ROW = 0  # Set to continue from specific row
 
-# Output files
-UNIQUE_CONTENT_FILE = os.path.join(OUTPUT_DIR, "coreml_llm_predictions_uniquecontent.csv")
-
-# Perfect agreement files
-AGREE_TOXIC_FILE = os.path.join(OUTPUT_DIR, "perfect_agreement_toxic.csv")
-AGREE_NEUTRAL_FILE = os.path.join(OUTPUT_DIR, "perfect_agreement_neutral.csv")
-
-# Disagreement files
-DISAGREE_TOXIC_FILE = os.path.join(OUTPUT_DIR, "disagreement_toxic.csv")
-DISAGREE_NEUTRAL_FILE = os.path.join(OUTPUT_DIR, "disagreement_neutral.csv")
-
-# Analysis reports
-SUMMARY_REPORT = os.path.join(OUTPUT_DIR, "consensus_summary_report.txt")
-MAJORITY_VOTE_FILE = os.path.join(OUTPUT_DIR, "majority_vote_results.csv")
-
-# LLM columns in the CSV
-LLM_COLUMNS = [
-    "prediction_openai",
-    "prediction_gemini", 
-    "prediction_grok",
-    "prediction_llama",
-    "prediction_deepseek",
-    "prediction_claude"
-]
-
-
-def ensure_output_dir():
-    """Create output directory if it doesn't exist"""
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-        print(f"✅ Created output directory: {OUTPUT_DIR}")
+# BigQuery query to fetch all three model predictions
+QUERY = f"""
+SELECT 
+    tweet_id,
+    text,
+    prediction,
+    score,
+    model_version,
+    prediction_llm0,
+    score_llm0,
+    prediction_llm3,
+    score_llm3,
+    prediction_llm4,
+    score_llm4,
+    possibly_sensitive,
+    created_at
+FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
+ORDER BY created_at DESC
+"""
 
 
-def load_predictions(filepath):
-    """Load predictions from CSV file"""
-    rows = []
-    with open(filepath, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            rows.append(row)
-    return rows
+def initialize_bigquery():
+    """Initialize BigQuery client"""
+    print("🔗 Connecting to BigQuery...")
+    try:
+        client = bigquery.Client(project=PROJECT_ID)
+        print("   ✅ Connected")
+        return client
+    except Exception as e:
+        print(f"   ❌ Failed to connect: {e}")
+        raise
 
 
-def normalize_prediction(pred):
-    """Normalize prediction to 0 (toxic) or 1 (neutral)"""
-    if pred is None or pred == "Error":
-        return None
-    pred_lower = str(pred).lower()
-    if "neutral" in pred_lower or pred_lower == "1":
-        return 1
-    elif "harassment" in pred_lower or "toxic" in pred_lower or pred_lower == "0":
-        return 0
-    return None
+def fetch_predictions(client, limit=None):
+    """Fetch CoreML predictions from BigQuery"""
+    query = QUERY
+    if limit:
+        query += f" LIMIT {limit}"
+    
+    print(f"\n📊 Fetching predictions from BigQuery...")
+    print(f"   Table: {PROJECT_ID}.{DATASET_ID}.{TABLE_ID}")
+    
+    try:
+        query_job = client.query(query)
+        results = list(query_job.result())
+        print(f"   ✅ Fetched {len(results)} rows")
+        return results
+    except Exception as e:
+        print(f"   ❌ Query failed: {e}")
+        raise
 
 
-def get_all_predictions(row):
-    """Extract all model predictions including CoreML"""
+def get_llm_predictions(texts):
+    """
+    Get predictions from all 6 LLMs
+    
+    Args:
+        texts: List of text strings to classify
+    
+    Returns:
+        Dictionary with predictions from each LLM ("Neutral" or "Harassment")
+    """
     predictions = {}
     
-    # CoreML prediction
-    coreml_pred = int(row.get("coreml_prediction", -1))
-    predictions["coreml"] = coreml_pred if coreml_pred in [0, 1] else None
+    print(f"   🤖 Calling 6 LLMs for {len(texts)} texts...")
     
-    # LLM predictions
-    for col in LLM_COLUMNS:
-        model_name = col.replace("prediction_", "")
-        predictions[model_name] = normalize_prediction(row.get(col))
+    # OpenAI
+    try:
+        predictions['openai'] = call_openai(texts)
+        print(f"      ✅ OpenAI complete")
+    except Exception as e:
+        print(f"      ❌ OpenAI failed: {e}")
+        predictions['openai'] = ["Harassment"] * len(texts)  # Default to toxic on error
+    
+    # Gemini
+    try:
+        predictions['gemini'] = call_gemini(texts)
+        print(f"      ✅ Gemini complete")
+    except Exception as e:
+        print(f"      ❌ Gemini failed: {e}")
+        predictions['gemini'] = ["Harassment"] * len(texts)
+    
+    # Grok
+    try:
+        predictions['grok'] = call_grok(texts)
+        print(f"      ✅ Grok complete")
+    except Exception as e:
+        print(f"      ❌ Grok failed: {e}")
+        predictions['grok'] = ["Harassment"] * len(texts)
+    
+    # Llama
+    try:
+        predictions['llama'] = call_llama(texts)
+        print(f"      ✅ Llama complete")
+    except Exception as e:
+        print(f"      ❌ Llama failed: {e}")
+        predictions['llama'] = ["Harassment"] * len(texts)
+    
+    # DeepSeek
+    try:
+        predictions['deepseek'] = call_deepseek(texts)
+        print(f"      ✅ DeepSeek complete")
+    except Exception as e:
+        print(f"      ❌ DeepSeek failed: {e}")
+        predictions['deepseek'] = ["Harassment"] * len(texts)
+    
+    # Claude
+    try:
+        predictions['claude'] = call_claude(texts)
+        print(f"      ✅ Claude complete")
+    except Exception as e:
+        print(f"      ❌ Claude failed: {e}")
+        predictions['claude'] = ["Harassment"] * len(texts)
     
     return predictions
 
 
-def check_agreement(predictions, coreml_value):
-    """
-    Check if all models agree with CoreML
-    Returns: (all_agree, disagreeing_models)
-    """
-    disagreeing = []
-    
-    for model, pred in predictions.items():
-        if model == "coreml":
-            continue
-        if pred is None:  # Skip errors
-            continue
-        if pred != coreml_value:
-            disagreeing.append(model)
-    
-    all_agree = len(disagreeing) == 0
-    return all_agree, disagreeing
-
-
-def get_majority_vote(predictions):
-    """
-    Get majority vote from all predictions (including CoreML)
-    Returns: (majority_value, vote_counts, confidence)
-    """
-    valid_predictions = [p for p in predictions.values() if p is not None]
-    
-    if not valid_predictions:
-        return None, {}, 0.0
-    
-    vote_counts = Counter(valid_predictions)
-    majority_value = vote_counts.most_common(1)[0][0]
-    majority_count = vote_counts[majority_value]
-    confidence = majority_count / len(valid_predictions)
-    
-    return majority_value, dict(vote_counts), confidence
-
-
-def create_deduplicated_dataset(rows):
-    """
-    Create deduplicated dataset based on tweet text
-    Keep first occurrence of each unique text
-    """
-    print("\n" + "="*60)
-    print("📋 CREATING DEDUPLICATED DATASET")
-    print("="*60)
-    
-    seen_texts = set()
-    unique_rows = []
-    duplicate_count = 0
-    
-    for row in rows:
-        text = row.get("text", "").strip()
-        
-        if text not in seen_texts:
-            seen_texts.add(text)
-            unique_rows.append(row)
-        else:
-            duplicate_count += 1
-    
-    print(f"   Total rows: {len(rows)}")
-    print(f"   Unique rows: {len(unique_rows)}")
-    print(f"   Duplicates removed: {duplicate_count}")
-    
-    # Write unique dataset
-    if unique_rows:
-        with open(UNIQUE_CONTENT_FILE, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=unique_rows[0].keys())
-            writer.writeheader()
-            writer.writerows(unique_rows)
-        print(f"   ✅ Saved to: {UNIQUE_CONTENT_FILE}")
-    
-    return unique_rows
-
-
-def analyze_dataset(rows, dataset_name="Full Dataset"):
-    """
-    Perform consensus analysis on a dataset
-    Returns statistics dictionary
-    """
-    print("\n" + "="*60)
-    print(f"🔍 ANALYZING: {dataset_name}")
-    print("="*60)
-    
-    # Categorize rows
-    agree_toxic = []
-    agree_neutral = []
-    disagree_toxic = []
-    disagree_neutral = []
-    majority_results = []
-    
-    stats = {
-        "total_rows": len(rows),
-        "agree_toxic": 0,
-        "agree_neutral": 0,
-        "disagree_toxic": 0,
-        "disagree_neutral": 0,
-        "possibly_sensitive_stats": {
-            "agree_toxic": {"yes": 0, "no": 0},
-            "agree_neutral": {"yes": 0, "no": 0},
-            "disagree_toxic": {"yes": 0, "no": 0},
-            "disagree_neutral": {"yes": 0, "no": 0}
-        }
-    }
-    
-    for row in rows:
-        # Handle both text and numeric CoreML predictions
-        coreml_value = row.get("coreml_prediction", "")
-        if isinstance(coreml_value, str):
-            coreml_value_lower = coreml_value.lower()
-            if "neutral" in coreml_value_lower:
-                coreml_pred = 1
-            elif "harassment" in coreml_value_lower or "toxic" in coreml_value_lower:
-                coreml_pred = 0
-            else:
-                continue  # Skip invalid values
-        else:
-            try:
-                coreml_pred = int(coreml_value)
-                if coreml_pred not in [0, 1]:
-                    continue
-            except (ValueError, TypeError):
-                continue
-        
-        # Handle both text and numeric possibly_sensitive values
-        sensitive_value = row.get("possibly_sensitive", 0)
-        if isinstance(sensitive_value, str):
-            sensitive_lower = sensitive_value.lower()
-            if sensitive_lower in ["true", "1", "yes"]:
-                possibly_sensitive = 1
-            else:
-                possibly_sensitive = 0
-        else:
-            try:
-                possibly_sensitive = int(sensitive_value)
-            except (ValueError, TypeError):
-                possibly_sensitive = 0
-        
-        # Get all predictions
-        predictions = get_all_predictions(row)
-        
-        # Check agreement
-        all_agree, disagreeing = check_agreement(predictions, coreml_pred)
-        
-        # Get majority vote
-        majority, vote_counts, confidence = get_majority_vote(predictions)
-        
-        # Add majority vote info to row
-        majority_row = row.copy()
-        majority_row["majority_vote"] = "Neutral" if majority == 1 else "Harassment"
-        majority_row["vote_confidence"] = f"{confidence:.2%}"
-        majority_row["vote_breakdown"] = str(vote_counts)
-        majority_row["disagrees_with_coreml"] = "Yes" if majority != coreml_pred else "No"
-        majority_results.append(majority_row)
-        
-        # Track possibly_sensitive
-        sensitive_key = "yes" if possibly_sensitive == 1 else "no"
-        
-        # Categorize by agreement and CoreML prediction
-        if coreml_pred == 0:  # Toxic
-            if all_agree:
-                agree_toxic.append(row)
-                stats["agree_toxic"] += 1
-                stats["possibly_sensitive_stats"]["agree_toxic"][sensitive_key] += 1
-            else:
-                disagree_toxic.append(row)
-                stats["disagree_toxic"] += 1
-                stats["possibly_sensitive_stats"]["disagree_toxic"][sensitive_key] += 1
-        else:  # Neutral
-            if all_agree:
-                agree_neutral.append(row)
-                stats["agree_neutral"] += 1
-                stats["possibly_sensitive_stats"]["agree_neutral"][sensitive_key] += 1
-            else:
-                disagree_neutral.append(row)
-                stats["disagree_neutral"] += 1
-                stats["possibly_sensitive_stats"]["disagree_neutral"][sensitive_key] += 1
-    
-    # Write categorized files
-    prefix = "unique_" if "Unique" in dataset_name else ""
-    
-    write_csv(agree_toxic, os.path.join(OUTPUT_DIR, f"{prefix}perfect_agreement_toxic.csv"))
-    write_csv(agree_neutral, os.path.join(OUTPUT_DIR, f"{prefix}perfect_agreement_neutral.csv"))
-    write_csv(disagree_toxic, os.path.join(OUTPUT_DIR, f"{prefix}disagreement_toxic.csv"))
-    write_csv(disagree_neutral, os.path.join(OUTPUT_DIR, f"{prefix}disagreement_neutral.csv"))
-    write_csv(majority_results, os.path.join(OUTPUT_DIR, f"{prefix}majority_vote_results.csv"))
-    
-    # Print statistics
-    print(f"\n📊 {dataset_name} Statistics:")
-    print(f"   Total rows analyzed: {stats['total_rows']}")
-    print(f"\n   Perfect Agreement:")
-    print(f"      Toxic (all agree): {stats['agree_toxic']}")
-    print(f"      Neutral (all agree): {stats['agree_neutral']}")
-    print(f"\n   Disagreements:")
-    print(f"      Toxic (at least 1 disagrees): {stats['disagree_toxic']}")
-    print(f"      Neutral (at least 1 disagrees): {stats['disagree_neutral']}")
-    
-    # Possibly sensitive analysis
-    print(f"\n   Possibly Sensitive Flag Analysis:")
-    for category, counts in stats["possibly_sensitive_stats"].items():
-        total = counts["yes"] + counts["no"]
-        if total > 0:
-            pct = (counts["yes"] / total) * 100
-            print(f"      {category}: {counts['yes']}/{total} ({pct:.1f}% sensitive)")
-    
-    return stats
-
-
-def write_csv(rows, filepath):
-    """Write rows to CSV file"""
+def save_results(rows, mode='w'):
+    """Save results to CSV"""
     if not rows:
         return
     
-    with open(filepath, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
-        writer.writeheader()
+    # CSV columns including all three CoreML models and all 6 LLMs
+    fieldnames = [
+        'tweet_id', 'text', 
+        'prediction', 'score', 'model_version',
+        'prediction_llm0', 'score_llm0',
+        'prediction_llm3', 'score_llm3',
+        'prediction_llm4', 'score_llm4',
+        'possibly_sensitive', 'created_at',
+        'prediction_openai', 'prediction_gemini', 'prediction_grok',
+        'prediction_llama', 'prediction_deepseek', 'prediction_claude'
+    ]
+    
+    with open(OUTPUT_FILE, mode, newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if mode == 'w':
+            writer.writeheader()
         writer.writerows(rows)
     
-    print(f"   ✅ Wrote {len(rows)} rows to: {filepath}")
+    print(f"   💾 Saved {len(rows)} rows to {OUTPUT_FILE}")
 
 
-def generate_summary_report(full_stats, unique_stats):
-    """Generate comprehensive summary report"""
-    with open(SUMMARY_REPORT, 'w', encoding='utf-8') as f:
-        f.write("="*60 + "\n")
-        f.write("CONSENSUS ANALYSIS SUMMARY REPORT\n")
-        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write("="*60 + "\n\n")
-        
-        # Full dataset
-        f.write("FULL DATASET (including duplicates)\n")
-        f.write("-"*60 + "\n")
-        f.write(f"Total rows: {full_stats['total_rows']}\n")
-        f.write(f"Perfect agreement (toxic): {full_stats['agree_toxic']}\n")
-        f.write(f"Perfect agreement (neutral): {full_stats['agree_neutral']}\n")
-        f.write(f"Disagreements (toxic): {full_stats['disagree_toxic']}\n")
-        f.write(f"Disagreements (neutral): {full_stats['disagree_neutral']}\n\n")
-        
-        # Unique dataset
-        f.write("UNIQUE CONTENT DATASET (duplicates removed)\n")
-        f.write("-"*60 + "\n")
-        f.write(f"Total rows: {unique_stats['total_rows']}\n")
-        f.write(f"Perfect agreement (toxic): {unique_stats['agree_toxic']}\n")
-        f.write(f"Perfect agreement (neutral): {unique_stats['agree_neutral']}\n")
-        f.write(f"Disagreements (toxic): {unique_stats['disagree_toxic']}\n")
-        f.write(f"Disagreements (neutral): {unique_stats['disagree_neutral']}\n\n")
-        
-        # Key insights
-        f.write("KEY INSIGHTS\n")
-        f.write("-"*60 + "\n")
-        
-        total_full = full_stats['total_rows']
-        total_unique = unique_stats['total_rows']
-        
-        if total_full > 0:
-            agree_pct = ((full_stats['agree_toxic'] + full_stats['agree_neutral']) / total_full) * 100
-            f.write(f"Full dataset agreement rate: {agree_pct:.1f}%\n")
-        
-        if total_unique > 0:
-            agree_pct_unique = ((unique_stats['agree_toxic'] + unique_stats['agree_neutral']) / total_unique) * 100
-            f.write(f"Unique dataset agreement rate: {agree_pct_unique:.1f}%\n")
-        
-        f.write(f"\nDuplicates in dataset: {total_full - total_unique}\n")
-        
-    print(f"\n   ✅ Summary report saved to: {SUMMARY_REPORT}")
+def process_batch(batch, batch_num, total_batches):
+    """
+    Process a single batch of texts
+    
+    Args:
+        batch: List of BigQuery rows
+        batch_num: Current batch number
+        total_batches: Total number of batches
+    
+    Returns:
+        List of result dictionaries ready for CSV
+    """
+    print(f"\n📦 Processing batch {batch_num}/{total_batches} ({len(batch)} rows)")
+    
+    # Extract texts for LLM classification
+    texts = [row['text'] for row in batch]
+    
+    # Get predictions from all 6 LLMs
+    llm_predictions = get_llm_predictions(texts)
+    
+    # Combine CoreML predictions with LLM predictions
+    results = []
+    for i, row in enumerate(batch):
+        result = {
+            'tweet_id': row['tweet_id'],
+            'text': row['text'],
+            'prediction': row['prediction'],
+            'score': row['score'],
+            'model_version': row['model_version'],
+            'prediction_llm0': row.get('prediction_llm0'),
+            'score_llm0': row.get('score_llm0'),
+            'prediction_llm3': row.get('prediction_llm3'),
+            'score_llm3': row.get('score_llm3'),
+            'prediction_llm4': row.get('prediction_llm4'),
+            'score_llm4': row.get('score_llm4'),
+            'possibly_sensitive': row.get('possibly_sensitive'),
+            'created_at': row['created_at'],
+            'prediction_openai': llm_predictions['openai'][i],
+            'prediction_gemini': llm_predictions['gemini'][i],
+            'prediction_grok': llm_predictions['grok'][i],
+            'prediction_llama': llm_predictions['llama'][i],
+            'prediction_deepseek': llm_predictions['deepseek'][i],
+            'prediction_claude': llm_predictions['claude'][i]
+        }
+        results.append(result)
+    
+    return results
 
 
 def main():
     print("="*60)
-    print("🔍 CONSENSUS ANALYSIS - CoreML vs LLM Predictions")
+    print("🔍 COREML PREDICTION EVALUATION WITH LLMs")
+    print("   Including Claude in main workflow")
     print("="*60)
     
-    # Check if input file exists
-    if not os.path.exists(INPUT_FILE):
-        print(f"❌ Input file not found: {INPUT_FILE}")
-        print("   Please run evaluate_CoreML.py first to generate predictions.")
+    # Check environment variables
+    required_vars = [
+        'OPENAI_API_KEY', 'GOOGLE_API_KEY', 'XAI_API_KEY',
+        'FIREWORKS_API_KEY', 'ANTHROPIC_API_KEY'
+    ]
+    missing = [var for var in required_vars if not os.getenv(var)]
+    if missing:
+        print(f"\n❌ Missing environment variables: {', '.join(missing)}")
+        print("   Please set all required API keys")
         return
     
-    # Create output directory
-    ensure_output_dir()
+    # Initialize BigQuery
+    try:
+        client = initialize_bigquery()
+    except Exception as e:
+        print(f"❌ Failed to initialize BigQuery: {e}")
+        return
     
-    # Load predictions
-    print(f"\n📂 Loading predictions from: {INPUT_FILE}")
-    rows = load_predictions(INPUT_FILE)
-    print(f"   ✅ Loaded {len(rows)} rows")
+    # Fetch predictions
+    try:
+        rows = fetch_predictions(client)
+    except Exception as e:
+        print(f"❌ Failed to fetch predictions: {e}")
+        return
     
-    # Analyze full dataset
-    full_stats = analyze_dataset(rows, "Full Dataset")
+    if not rows:
+        print("❌ No data fetched from BigQuery")
+        return
     
-    # Create deduplicated dataset
-    unique_rows = create_deduplicated_dataset(rows)
+    # Check if resuming
+    start_row = RESUME_FROM_ROW
+    if start_row > 0:
+        print(f"\n⏭️  Resuming from row {start_row}")
+        rows = rows[start_row:]
     
-    # Analyze unique dataset
-    unique_stats = analyze_dataset(unique_rows, "Unique Content Dataset")
+    # Process in batches
+    total_batches = (len(rows) + BATCH_SIZE - 1) // BATCH_SIZE
+    print(f"\n📊 Processing {len(rows)} rows in {total_batches} batches of {BATCH_SIZE}")
+    print(f"   Estimated time: ~{(total_batches * 2) / 60:.1f} minutes")
     
-    # Generate summary report
+    all_results = []
+    mode = 'w' if start_row == 0 else 'a'
+    
+    start_time = time.time()
+    
+    for batch_num in range(total_batches):
+        start_idx = batch_num * BATCH_SIZE
+        end_idx = min(start_idx + BATCH_SIZE, len(rows))
+        batch = [dict(row) for row in rows[start_idx:end_idx]]
+        
+        try:
+            results = process_batch(batch, batch_num + 1, total_batches)
+            all_results.extend(results)
+            
+            # Save after each batch
+            save_results(results, mode)
+            mode = 'a'  # Append for subsequent batches
+            
+            # Progress summary
+            elapsed = time.time() - start_time
+            processed = (batch_num + 1) * BATCH_SIZE
+            rate = processed / elapsed if elapsed > 0 else 0
+            remaining = (len(rows) - processed) / rate if rate > 0 else 0
+            
+            print(f"   📈 Progress: {processed}/{len(rows)} rows | "
+                  f"Elapsed: {elapsed/60:.1f}m | Remaining: ~{remaining/60:.1f}m")
+            
+            # Rate limiting between batches
+            if batch_num < total_batches - 1:
+                print(f"   ⏳ Waiting 3 seconds before next batch...")
+                time.sleep(3)
+                
+        except Exception as e:
+            print(f"   ❌ Batch {batch_num + 1} failed: {e}")
+            print(f"   💡 To resume, set RESUME_FROM_ROW = {start_row + start_idx}")
+            break
+    
+    # Final summary
+    total_time = time.time() - start_time
     print("\n" + "="*60)
-    print("📝 GENERATING SUMMARY REPORT")
+    print("✅ EVALUATION COMPLETE")
     print("="*60)
-    generate_summary_report(full_stats, unique_stats)
-    
-    print("\n" + "="*60)
-    print("✅ CONSENSUS ANALYSIS COMPLETE")
-    print("="*60)
-    print(f"\nAll results saved to: {OUTPUT_DIR}/")
-    print("\nGenerated files:")
-    print("   - Unique content dataset")
-    print("   - Perfect agreement files (toxic & neutral)")
-    print("   - Disagreement files (toxic & neutral)")
-    print("   - Majority vote results")
-    print("   - Summary report")
+    print(f"\nResults:")
+    print(f"   Total rows processed: {len(all_results)}")
+    print(f"   Total time: {total_time/60:.1f} minutes")
+    print(f"   Output file: {OUTPUT_FILE}")
+    print(f"\nNext steps:")
+    print(f"   Run analysis: python analyze_consensus_three_models.py")
     print("="*60)
 
 
