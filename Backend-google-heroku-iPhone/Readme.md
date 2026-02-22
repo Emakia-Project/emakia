@@ -1,31 +1,158 @@
+Here is a cleaned-up, well-structured, and more professional version of the README.md content:
 
-README content
-# Emakia Tech API (backend-Google-iPhone)Flask API backend for the Emakia system. Ingests and serves ML toxicity predictions for tweets, backed by **Google BigQuery** (dataset: `emakia.politics2024`). Supports multiple model versions (llm0, llm3, llm4) in a single flow.## Features- **Store predictions**: POST ML prediction results (one or more of llm0, llm3, llm4) per tweet; duplicates are skipped.- **Tweet cascade**: GET tweets with predictions, with filters (topic, language, sensitivity, model, prediction type).- **Model comparison**: GET agreement statistics between models (llm0 vs llm3 vs llm4).- **Health**: Root and `/api/health` endpoints for status and BigQuery connectivity.## Requirements- Python 3.x- See `requirements.txt` for dependencies (Flask, `google-cloud-bigquery`, `python-dotenv`, gunicorn, streamlit optional, etc.)## Setup1. **Clone and install**   pip install -r requirements.txt   
-BigQuery credentials (one of):
-Streamlit (local): set bq.creds in Streamlit secrets.
-File: set GOOGLE_APPLICATION_CREDENTIALS to the path of a service account JSON file.
-Heroku/production: set BQ_CREDS to the full JSON string of the service account.
-Env vars: set TYPE, PROJECT_ID, PRIVATE_KEY, CLIENT_EMAIL, and other standard GCP service account fields.
-Environment
-.env with python-dotenv is supported (e.g. for local GOOGLE_APPLICATION_CREDENTIALS or other vars).
-Optional: PORT (default 5001), FLASK_DEBUG=true for debug.
-Run locally
+```markdown
+# Emakia Tech API (Backend)
+
+Flask-based backend API for the **Emakia** system.
+
+This service ingests machine learning toxicity predictions for tweets (mainly political content from 2024) and serves them efficiently.  
+Data is stored in **Google BigQuery** (dataset: `emakia.politics2024`).
+
+Supports multiple model versions in parallel: **llm0**, **llm3**, **llm4**.
+
+## Features
+
+- **Store predictions**  
+  POST toxicity predictions for one or more models per tweet (duplicates are skipped)
+
+- **Tweet cascade / filtered listing**  
+  GET tweets enriched with predictions, supporting filters:  
+  topic • language • sensitivity • model version • prediction type
+
+- **Model comparison**  
+  GET agreement statistics and confusion metrics between llm0, llm3, and llm4
+
+- **Health checks**  
+  Simple `/` and detailed `/api/health` endpoints (includes BigQuery connectivity test)
+
+## Tech Stack
+
+- Python 3.9+
+- Flask
+- google-cloud-bigquery
+- python-dotenv
+- gunicorn (production)
+- Optional: Streamlit (for local development / debugging)
+
+See [`requirements.txt`](./requirements.txt) for full dependencies.
+
+## Setup
+
+### 1. Clone & install dependencies
+
+```bash
+git clone <repository-url>
+cd <repository-folder>
+pip install -r requirements.txt
+```
+
+### 2. Authentication – Google BigQuery
+
+Choose **one** of the following methods:
+
+**A. Local development (recommended)**  
+Set environment variable:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-account.json"
+```
+
+**B. Streamlit / local secrets**  
+Add `bq.creds` key in `.streamlit/secrets.toml` with the full JSON content.
+
+**C. Heroku / production**  
+Set environment variable `BQ_CREDS` = full JSON string of the service account key.
+
+**D. Manual env vars** (less common)  
+```bash
+export TYPE="service_account"
+export PROJECT_ID="emakia"
+export PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+export CLIENT_EMAIL="..."
+# + other standard GCP fields
+```
+
+### 3. Optional environment variables
+
+```bash
+# .env file (loaded automatically via python-dotenv)
+PORT=5001
+FLASK_DEBUG=true              # enables debug mode + auto-reload
+```
+
+### 4. Run locally
+
+```bash
 python app.py
-Runs on http://0.0.0.0:5001 (or PORT). Production can use the Procfile (e.g. web: python app.py or web: gunicorn app:app).
-API Endpoints
-Method	Path	Description
-GET	/	Health check; reports API and BigQuery status.
-GET	/api/health	Detailed health + BigQuery connectivity check.
-POST	/api/prediction	Store a prediction payload (see below).
-GET	/api/tweet-cascade	List tweets with predictions (query params: topic, limit, lang, sensitive_filter, model, prediction_type).
-GET	/api/model-comparison	Aggregated agreement stats between llm0, llm3, llm4.
-POST	/api/test-prediction	Echo received JSON (for debugging payloads).
-POST /api/prediction payload
-{  "tweet_id": "12345",  "text": "tweet content",  "possibly_sensitive": false,  "predictions": {    "llm0": { "prediction": "harassment", "score": 0.87 },    "llm3": { "prediction": "neutral", "score": 0.92 },    "llm4": { "prediction": "harassment", "score": 0.85 }  }}
-At least one of llm0, llm3, llm4 must be present. Data is written to emakia.politics2024.CoreMLpredictions; tweet cascade joins with NoRetweets-political2024 and users.
-BigQuery tables (reference)
-emakia.politics2024.CoreMLpredictions — stored predictions (tweet_id, text, scores per model).
-emakia.politics2024.NoRetweets-political2024 — tweet content/metadata.
-emakia.politics2024.users — user info (username, name, profile_image_url).
-License
-Internal / Emakia Tech.
+# or with gunicorn (more production-like)
+gunicorn --bind 0.0.0.0:5001 app:app
+```
+
+The API will be available at:  
+http://localhost:5001 (or your chosen PORT)
+
+## API Endpoints
+
+| Method | Path                        | Description                                      |
+|--------|-----------------------------|--------------------------------------------------|
+| `GET`  | `/`                         | Basic health check (API + BigQuery status)       |
+| `GET`  | `/api/health`               | Detailed health info + BigQuery connectivity     |
+| `POST` | `/api/prediction`           | Store ML prediction(s) for a tweet               |
+| `GET`  | `/api/tweet-cascade`        | List tweets + predictions (with query filters)   |
+| `GET`  | `/api/model-comparison`     | Model agreement statistics (llm0 vs llm3 vs llm4)|
+| `POST` | `/api/test-prediction`      | Echo received JSON payload (debugging)           |
+
+### POST /api/prediction – Payload Example
+
+```json
+{
+  "tweet_id": "1893746281945620482",
+  "text": "This is an example tweet content",
+  "possibly_sensitive": false,
+  "predictions": {
+    "llm0": {
+      "prediction": "harassment",
+      "score": 0.87
+    },
+    "llm3": {
+      "prediction": "neutral",
+      "score": 0.92
+    },
+    "llm4": {
+      "prediction": "harassment",
+      "score": 0.854
+    }
+  }
+}
+```
+
+- At least **one** of `llm0`, `llm3`, `llm4` must be present  
+- Table written to: `emakia.politics2024.CoreMLpredictions`
+
+## BigQuery Tables (Reference)
+
+| Table name                              | Purpose                              |
+|-----------------------------------------|--------------------------------------|
+| `emakia.politics2024.CoreMLpredictions` | Stored model predictions & scores    |
+| `emakia.politics2024.NoRetweets-political2024` | Original tweet content & metadata |
+| `emakia.politics2024.users`             | User information (username, name, profile image, etc.) |
+
+`/api/tweet-cascade` performs joins across these tables.
+
+## License
+
+**Internal / Emakia Tech** – All rights reserved.
+
+Not for public redistribution or commercial use outside Emakia projects.
+```
+
+This version improves:
+
+- readability with consistent markdown
+- clearer setup instructions
+- proper table formatting
+- better organization of sections
+- realistic payload example
+- explicit notes about requirements & limitations
+
+Feel free to adjust any company-specific details or add badges, CI status, etc. if needed!
