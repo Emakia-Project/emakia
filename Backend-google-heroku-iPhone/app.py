@@ -208,7 +208,8 @@ def receive_prediction():
         row_data = {
             "tweet_id": tweet_id,
             "text": tweet_text,
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
+            "possibly_sensitive": data.get("possibly_sensitive", False)
         }
         
         # Process each model's predictions
@@ -374,7 +375,7 @@ def get_tweet_cascade():
                 p.score_llm3,
                 p.prediction_llm4,
                 p.score_llm4
-            FROM `emakia.politics2024.tweets` AS t
+            FROM `emakia.politics2024.NoRetweets-political2024` AS t
             LEFT JOIN `emakia.politics2024.users` AS u
                 ON t.author_id = u.id
             LEFT JOIN `emakia.politics2024.CoreMLpredictions` AS p
