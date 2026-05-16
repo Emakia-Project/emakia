@@ -14,9 +14,10 @@ struct PredictionRow: Codable {
     let prediction: String
     let score: Double
     let model_version: String
+    let possibly_sensitive: Bool  
 }
 
-func sendPrediction(row: PredictionRow) {
+/*func sendPrediction(row: PredictionRow) {
     guard let url = URL(string: "https://emakiatech-api-b6fc087f7f4f.herokuapp.com/api/prediction") else { return }
 
     var request = URLRequest(url: url)
@@ -40,4 +41,4 @@ func sendPrediction(row: PredictionRow) {
             print("✅ Prediction sent, status: \(httpResponse.statusCode)")
         }
     }.resume()
-}
+} */

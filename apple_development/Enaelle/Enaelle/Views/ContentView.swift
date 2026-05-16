@@ -5,6 +5,12 @@
 //
 //  Created by Corinne David on 7/19/25.
 //
+//
+//  ContentView.swift
+//  Enaelle
+//
+//  Created by Corinne David on 7/19/25.
+//
 
 import SwiftUI
 
@@ -47,13 +53,34 @@ struct ContentView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .padding(.bottom)
+                .padding(.bottom, 8)
+                
+                // Model selector
+                if !viewModel.allModelResults.isEmpty {
+                    VStack(spacing: 4) {
+                        Text("Model Version:")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Picker("Model", selection: $viewModel.selectedModel) {
+                            ForEach(ModelVersion.allCases, id: \.self) { version in
+                                Text(version.displayName).tag(version)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.horizontal)
+                        .onChange(of: viewModel.selectedModel) { _ in
+                            viewModel.updateDisplayForSelectedModel()
+                        }
+                    }
+                    .padding(.bottom, 8)
+                }
                 
                 // Classification progress indicator
                 if viewModel.isClassifying {
                     HStack {
                         ProgressView()
-                        Text("Classifying tweets with CoreML...")
+                        Text("Classifying with 3 models...")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
@@ -68,6 +95,11 @@ struct ContentView: View {
                                 .font(.caption)
                                 .foregroundColor(.gray)
                             Spacer()
+                            if !viewModel.allModelResults.isEmpty {
+                                Text("Viewing: \(viewModel.selectedModel.displayName)")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
                         }
                         .padding(.horizontal)
                         
@@ -86,16 +118,44 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
                             List(viewModel.tweets) { tweet in
-                                TweetCard(tweet: tweet)
-                                    .overlay(alignment: .topTrailing) {
-                                        if let result = viewModel.toxicityResults[tweet.id] {
-                                            if result.isHarassment {
-                                                Image(systemName: "exclamationmark.triangle.fill")
-                                                    .foregroundColor(.red)
-                                                    .padding(8)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    TweetCard(tweet: tweet)
+                                    
+                                    // Show predictions from all models
+                                    if let modelResults = viewModel.allModelResults[tweet.id] {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Model Predictions:")
+                                                .font(.caption2)
+                                                .foregroundColor(.gray)
+                                            
+                                            ForEach(ModelVersion.allCases, id: \.self) { version in
+                                                if let result = modelResults[version] {
+                                                    HStack {
+                                                        Circle()
+                                                            .fill(result.isHarassment ? Color.red : Color.green)
+                                                            .frame(width: 6, height: 6)
+                                                        Text("\(version.rawValue): \(result.category) (\(result.confidencePercentage)%)")
+                                                            .font(.caption2)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                }
                                             }
                                         }
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 4)
+                                        .background(Color.gray.opacity(0.1))
+                                        .cornerRadius(4)
                                     }
+                                }
+                                .overlay(alignment: .topTrailing) {
+                                    if let result = viewModel.toxicityResults[tweet.id] {
+                                        if result.isHarassment {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .foregroundColor(.red)
+                                                .padding(8)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -133,7 +193,6 @@ struct ContentView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     TweetCard(tweet: tweet)
                                     
-                                    // Show classification confidence
                                     if let result = viewModel.toxicityResults[tweet.id] {
                                         HStack {
                                             Image(systemName: "checkmark.circle.fill")
@@ -151,7 +210,7 @@ struct ContentView: View {
                         }
                     }
                     .tabItem {
-                        Label("Sensitive", systemImage: "exclamationmark.triangle")
+                        Label("Neutral", systemImage: "checkmark.circle")
                     }
                     .tag(1)
                     .badge(viewModel.neutralTweets.count)
@@ -184,7 +243,6 @@ struct ContentView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     TweetCard(tweet: tweet)
                                     
-                                    // Show harassment confidence
                                     if let result = viewModel.toxicityResults[tweet.id] {
                                         HStack {
                                             Image(systemName: "flame.fill")
@@ -202,7 +260,7 @@ struct ContentView: View {
                         }
                     }
                     .tabItem {
-                        Label("Toxicity", systemImage: "flame")
+                        Label("Toxic", systemImage: "flame")
                     }
                     .tag(2)
                     .badge(viewModel.harassmentTweets.count)
